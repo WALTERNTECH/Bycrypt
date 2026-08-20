@@ -8,7 +8,7 @@ export function Footer() {
           <div className="max-w-sm">
             <Logo />
             <p className="mt-3 text-sm leading-relaxed text-text-secondary">
-              Bycrypt allocates deposited USDT into automated, professionally managed trading.
+              Krypton allocates deposited USDT into automated, professionally managed trading.
               Returns are variable and capped by tier — never guaranteed.
             </p>
           </div>
@@ -32,11 +32,11 @@ export function Footer() {
         <div className="mt-10 border-t border-border/60 pt-6 text-xs leading-relaxed text-text-secondary">
           <p>
             Returns are variable, market-dependent maximums — not guarantees, and may be lower
-            than the cap, including zero, if the market does not move favourably. Bycrypt does
+            than the cap, including zero, if the market does not move favourably. Krypton does
             not custody funds long-term and does not provide investment advice. Digital asset
             markets carry significant risk; only invest what you can afford to lose.
           </p>
-          <p className="mt-3">© {new Date().getFullYear()} Bycrypt. All rights reserved.</p>
+          <p className="mt-3">© {new Date().getFullYear()} Krypton. All rights reserved.</p>
         </div>
       </div>
     </footer>

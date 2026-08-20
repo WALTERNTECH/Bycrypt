@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Bycrypt Admin",
-  description: "Operational control centre for the Bycrypt platform — staff only.",
+  title: "Krypton Admin",
+  description: "Operational control centre for the Krypton platform — staff only.",
   robots: { index: false, follow: false },
   icons: { icon: "data:," }
 };

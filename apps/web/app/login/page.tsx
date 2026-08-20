@@ -33,7 +33,7 @@ export default function LoginPage() {
   return (
     <AuthCard
       title="Log in"
-      subtitle="Welcome back to Bycrypt."
+      subtitle="Welcome back to Krypton."
       footer={
         <>
           Don't have an account?{" "}

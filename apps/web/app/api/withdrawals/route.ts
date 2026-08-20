@@ -9,7 +9,7 @@ const bodySchema = z.object({
   destination_address: z.string().min(10)
 });
 
-// Note: this only records a withdrawal request for admin review. Bycrypt
+// Note: this only records a withdrawal request for admin review. Krypton
 // never holds or moves crypto funds itself (PRD 10) — an admin sends the
 // payout manually from the platform's own wallet and records the tx_hash
 // once approved (see admin app).

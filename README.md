@@ -1,7 +1,8 @@
-# Bycrypt
+# Krypton
 
-Automated crypto trading & custody platform. Built from the Bycrypt PRD and
-Technical Design Document (v1.0), adapted per client decisions to:
+Automated crypto trading & custody platform (built under the working name
+"Bycrypt" in the original PRD/Technical Design Document — the product is
+branded **Krypton**). Adapted per client decisions to:
 
 - **Next.js 14 + Supabase** instead of separate NestJS APIs + Redis/BullMQ
   (same schema, same API contracts, same security requirements — less

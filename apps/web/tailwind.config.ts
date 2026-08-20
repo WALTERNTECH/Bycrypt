@@ -1,6 +1,6 @@
 import type { Config } from "tailwindcss";
 
-// Bycrypt brand system — from the PRD (Section 4.2), OKX/Binance-inspired.
+// Krypton brand system — from the PRD (Section 4.2), OKX/Binance-inspired.
 const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {

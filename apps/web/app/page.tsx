@@ -32,7 +32,7 @@ export default async function HomePage() {
               <span className="text-brand"> Let the bot trade.</span>
             </h1>
             <p className="mt-5 max-w-lg text-base leading-relaxed text-text-secondary">
-              Bycrypt allocates your deposit into automated, professionally managed trading for a
+              Krypton allocates your deposit into automated, professionally managed trading for a
               fixed lockup period. No charts to read, no trades to place — just a transparent,
               capped return tied to real market performance.
             </p>
@@ -60,7 +60,7 @@ export default async function HomePage() {
             <ol className="mt-5 space-y-4 text-sm text-text-secondary">
               {[
                 "Choose a lockup tier and see its maximum return upfront",
-                "Send USDT (TRC20 / TRON) to Bycrypt's deposit address",
+                "Send USDT (TRC20 / TRON) to Krypton's deposit address",
                 "Submit your transaction hash for on-chain verification",
                 "Once confirmed, the bot trades your allocation for the lockup period",
                 "At maturity, request a withdrawal to your own wallet"

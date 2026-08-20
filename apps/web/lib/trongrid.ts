@@ -1,5 +1,5 @@
 // Server-only. On-chain USDT-TRC20 deposit verification against TronGrid,
-// following the algorithm specified in the Bycrypt Technical Design
+// following the algorithm specified in the Krypton (née Bycrypt) Technical Design
 // Document, Section 5.3 ("Deposit verification — detailed contract").
 
 import TronWeb from "tronweb";

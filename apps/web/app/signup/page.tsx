@@ -134,7 +134,7 @@ export default function SignupPage() {
             onChange={(e) => setAgreed(e.target.checked)}
             className="mt-0.5 accent-brand"
           />
-          I accept Bycrypt's Terms of Service and understand that returns are variable, capped
+          I accept Krypton's Terms of Service and understand that returns are variable, capped
           maximums and are never guaranteed.
         </label>
 

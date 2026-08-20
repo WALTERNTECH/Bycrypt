@@ -16,7 +16,7 @@ export default async function AdminWithdrawalsPage() {
       <h1 className="text-2xl font-bold text-text-primary">Withdrawal Queue</h1>
       <p className="mt-1 text-sm text-text-secondary">
         Approve or reject pending requests. Approved requests must be paid manually from the
-        platform wallet — Bycrypt does not broadcast transactions on your behalf.
+        platform wallet — Krypton does not broadcast transactions on your behalf.
       </p>
 
       <div className="mt-6 overflow-x-auto rounded-xl border border-border/60 bg-panel">

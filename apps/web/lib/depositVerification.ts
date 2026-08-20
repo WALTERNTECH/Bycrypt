@@ -5,7 +5,7 @@ const REASON_MESSAGES: Record<string, string> = {
   transaction_not_found: "We couldn't find that transaction on the TRON network yet. Double-check the hash, or wait a moment and try again.",
   transaction_failed: "That transaction failed on-chain, so it can't be credited.",
   no_matching_transfer_event: "That transaction doesn't contain a USDT (TRC20) transfer.",
-  wrong_destination_address: "That transaction wasn't sent to Bycrypt's deposit address.",
+  wrong_destination_address: "That transaction wasn't sent to Krypton's deposit address.",
   trongrid_unreachable: "We couldn't reach the TRON network right now. We'll keep trying — check back shortly.",
   verification_error: "Something went wrong verifying this deposit. We'll keep trying — check back shortly.",
   insufficient_confirmations: "Your transaction was found and is waiting for more network confirmations."

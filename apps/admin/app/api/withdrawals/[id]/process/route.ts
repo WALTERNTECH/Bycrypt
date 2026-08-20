@@ -6,7 +6,7 @@ import { logAdminAction } from "@/lib/auditLog";
 
 const bodySchema = z.object({ tx_hash: z.string().min(10).max(80) });
 
-// Records that an already-approved withdrawal was paid out. Bycrypt never
+// Records that an already-approved withdrawal was paid out. Krypton never
 // broadcasts the payout itself (PRD 10 — the platform does not custody
 // funds long-term) — the admin sends it manually from the platform wallet
 // and records the resulting tx_hash here for the audit trail.
