@@ -28,7 +28,8 @@ const supabase = createClient(url, serviceKey, { auth: { autoRefreshToken: false
 const { data: created, error: createError } = await supabase.auth.admin.createUser({
   email,
   password,
-  email_confirm: true
+  email_confirm: true,
+  user_metadata: { is_admin: true } // tells the profiles-bootstrap trigger to skip this user
 });
 
 if (createError) {

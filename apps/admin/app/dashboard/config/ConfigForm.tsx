@@ -8,13 +8,15 @@ import { isValidTronAddress } from "@/lib/tron-address";
 const LABELS: Record<string, string> = {
   receiving_wallet_address: "Receiving TRC20 wallet address",
   min_deposit_usdt: "Minimum deposit (USDT)",
-  platform_name: "Platform name"
+  platform_name: "Platform name",
+  telegram_support_url: "Telegram support link"
 };
 
 const HINTS: Record<string, string> = {
   receiving_wallet_address: "Shown to every user in the deposit flow. Must be a TRC20 (TRON) address you control.",
   min_deposit_usdt: "Enforced client-side only for now — verification always trusts the on-chain amount.",
-  platform_name: "Displayed across the public site."
+  platform_name: "Displayed across the public site.",
+  telegram_support_url: "Where the Telegram support button (navbar, footer, deposit page) sends users."
 };
 
 export function ConfigForm({ configKey, initialValue }: { configKey: string; initialValue: string }) {
