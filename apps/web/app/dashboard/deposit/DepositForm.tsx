@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
+import { TelegramButton } from "@/components/TelegramButton";
 import { isValidTxHash } from "@/lib/tron-address";
 import type { Tier } from "@/components/TierCard";
 
@@ -11,11 +12,13 @@ const PLACEHOLDER_ADDRESS = "REPLACE_WITH_CLIENT_TRC20_WALLET_ADDRESS";
 export function DepositForm({
   tiers,
   depositAddress,
-  minDeposit
+  minDeposit,
+  telegramUrl
 }: {
   tiers: Tier[];
   depositAddress: string;
   minDeposit: number;
+  telegramUrl: string;
 }) {
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -139,6 +142,18 @@ export function DepositForm({
             Minimum deposit: {minDeposit} USDT. Send only USDT on the TRON (TRC20) network to this
             address — other networks or assets cannot be recovered.
           </p>
+
+          <div className="mt-3 rounded-lg border border-border/60 bg-panel-2 px-3.5 py-3">
+            <p className="text-xs font-semibold text-text-primary">Don't have USDT yet?</p>
+            <p className="mt-1 text-xs leading-relaxed text-text-secondary">
+              Buy USDT on an exchange like Binance or OKX first, withdraw it on the TRC20 (TRON)
+              network, then send it to the address below. If you're not sure how, Krypton Support
+              will walk you through it on Telegram.
+            </p>
+            <div className="mt-2.5">
+              <TelegramButton url={telegramUrl} variant="full" />
+            </div>
+          </div>
 
           {addressNotReady ? (
             <p className="mt-3 rounded-lg border border-negative/40 bg-negative/10 px-3 py-2 text-xs text-negative">

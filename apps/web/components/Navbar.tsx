@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "./Logo";
 import { SignOutButton } from "./SignOutButton";
+import { TelegramButton } from "./TelegramButton";
 
 const navLinks = [
   { href: "/markets", label: "Markets" },
@@ -11,9 +12,16 @@ const navLinks = [
 
 export async function Navbar() {
   const supabase = createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const [
+    {
+      data: { user }
+    },
+    { data: config }
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from("platform_config").select("value").eq("key", "telegram_support_url").maybeSingle()
+  ]);
+  const telegramUrl = config?.value ?? "https://t.me/KRYPTONinv";
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-base/90 backdrop-blur">
@@ -36,6 +44,7 @@ export async function Navbar() {
         </div>
 
         <div className="flex items-center gap-3">
+          <TelegramButton url={telegramUrl} />
           {user ? (
             <>
               <Link

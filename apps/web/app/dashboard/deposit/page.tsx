@@ -22,6 +22,7 @@ export default async function DepositPage() {
           tiers={tiers ?? []}
           depositAddress={configMap.receiving_wallet_address ?? ""}
           minDeposit={parseFloat(configMap.min_deposit_usdt ?? "10")}
+          telegramUrl={configMap.telegram_support_url ?? "https://t.me/KRYPTONinv"}
         />
       </div>
     </div>

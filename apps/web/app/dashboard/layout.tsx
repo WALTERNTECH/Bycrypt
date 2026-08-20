@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/Logo";
 import { SignOutButton } from "@/components/SignOutButton";
+import { TelegramButton } from "@/components/TelegramButton";
 
 const navItems = [
   { href: "/dashboard", label: "Overview" },
@@ -13,9 +14,16 @@ const navItems = [
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
+  const [
+    {
+      data: { user }
+    },
+    { data: config }
+  ] = await Promise.all([
+    supabase.auth.getUser(),
+    supabase.from("platform_config").select("value").eq("key", "telegram_support_url").maybeSingle()
+  ]);
+  const telegramUrl = config?.value ?? "https://t.me/KRYPTONinv";
 
   if (!user) redirect("/login");
 
@@ -26,10 +34,11 @@ export default async function DashboardLayout({ children }: { children: React.Re
           <Link href="/">
             <Logo />
           </Link>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <Link href="/markets" className="text-sm text-text-secondary hover:text-text-primary">
               Markets
             </Link>
+            <TelegramButton url={telegramUrl} />
             <SignOutButton />
           </div>
         </div>
