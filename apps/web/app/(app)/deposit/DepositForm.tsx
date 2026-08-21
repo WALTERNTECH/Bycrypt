@@ -5,27 +5,28 @@ import { useRouter } from "next/navigation";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
 import { TelegramButton } from "@/components/TelegramButton";
 import { isValidTxHash } from "@/lib/tron-address";
-import type { Tier } from "@/components/TierCard";
 
 const PLACEHOLDER_ADDRESS = "REPLACE_WITH_CLIENT_TRC20_WALLET_ADDRESS";
 
+const NETWORKS = [
+  { value: "TRC20", label: "TRON (TRC20)", enabled: true },
+  { value: "BEP20", label: "BNB Smart Chain (BEP20)", enabled: false },
+  { value: "ERC20", label: "Ethereum (ERC20)", enabled: false }
+] as const;
+
 export function DepositForm({
-  tiers,
   depositAddress,
   minDeposit,
-  telegramUrl,
-  preselectedTier
+  telegramUrl
 }: {
-  tiers: Tier[];
   depositAddress: string;
   minDeposit: number;
   telegramUrl: string;
-  preselectedTier?: number | null;
 }) {
   const router = useRouter();
-  const initialTierValid = preselectedTier && tiers.some((t) => t.id === preselectedTier);
-  const [step, setStep] = useState<1 | 2 | 3>(initialTierValid ? 2 : 1);
-  const [tierId, setTierId] = useState<number | null>(initialTierValid ? preselectedTier! : null);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [amount, setAmount] = useState("");
+  const [network, setNetwork] = useState<string>("TRC20");
   const [txHash, setTxHash] = useState("");
   const [transactionKey, setTransactionKey] = useState("");
   const [copied, setCopied] = useState(false);
@@ -34,13 +35,11 @@ export function DepositForm({
   const [result, setResult] = useState<{ deposit_id: string; status: string; message: string } | null>(null);
   const pollCount = useRef(0);
 
-  const selectedTier = tiers.find((t) => t.id === tierId);
   const addressNotReady = !depositAddress || depositAddress === PLACEHOLDER_ADDRESS;
 
-  // Poll for a final status while verification is still pending.
   useEffect(() => {
     if (!result || result.status !== "pending_verification") return;
-    if (pollCount.current >= 15) return; // ~90s of polling, then user can refresh manually
+    if (pollCount.current >= 15) return;
 
     const timer = setTimeout(async () => {
       pollCount.current += 1;
@@ -71,7 +70,7 @@ export function DepositForm({
       const res = await fetch("/api/deposits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier_id: tierId, tx_hash: txHash.trim(), transaction_key: transactionKey })
+        body: JSON.stringify({ tx_hash: txHash.trim(), transaction_key: transactionKey, network })
       });
       const data = await res.json();
       if (!res.ok) {
@@ -95,8 +94,8 @@ export function DepositForm({
         </p>
         <p className="mt-2 text-sm text-text-secondary">{result.message}</p>
         {confirmed ? (
-          <a href="/investments" className="mt-5 inline-block text-sm font-semibold text-brand">
-            View your investments →
+          <a href="/" className="mt-5 inline-block text-sm font-semibold text-brand">
+            Back to your wallet →
           </a>
         ) : rejected ? (
           <button
@@ -118,45 +117,78 @@ export function DepositForm({
     );
   }
 
+  const amountValid = parseFloat(amount) >= minDeposit;
+
   return (
     <div className="space-y-4">
-      {/* Step 1 — tier */}
+      {/* Step 1 — amount */}
       <div className="rounded-xl border border-border/60 bg-panel p-4">
-        <p className="text-sm font-semibold text-text-primary">1. Choose your lockup tier</p>
-        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
-          {tiers.map((t) => (
-            <button
-              key={t.id}
-              onClick={() => {
-                setTierId(t.id);
-                setStep(2);
-              }}
-              className={`rounded-lg border px-3 py-3 text-center transition-colors ${
-                tierId === t.id ? "border-brand bg-brand/10" : "border-border/60 hover:border-border"
-              }`}
-            >
-              <p className="text-sm font-bold text-text-primary">{t.lockup_days}d</p>
-              <p className="mono-num text-xs text-positive">Up to {t.max_return_pct}%</p>
-            </button>
-          ))}
+        <p className="text-sm font-semibold text-text-primary">1. How much tradable capital?</p>
+        <p className="mt-1 text-xs text-text-secondary">The amount of USDT you plan to send. Minimum {minDeposit} USDT.</p>
+        <div className="mt-3">
+          <FormField label="Amount (USDT)">
+            <input
+              inputMode="decimal"
+              className={inputClass}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+              placeholder={String(minDeposit)}
+            />
+          </FormField>
         </div>
+        {step === 1 && (
+          <button
+            onClick={() => amountValid && setStep(2)}
+            disabled={!amountValid}
+            className="mt-3 text-sm font-semibold text-brand disabled:opacity-50"
+          >
+            Continue →
+          </button>
+        )}
       </div>
 
-      {/* Step 2 — address */}
-      {step >= 2 && selectedTier && (
+      {/* Step 2 — network */}
+      {step >= 2 && (
         <div className="rounded-xl border border-border/60 bg-panel p-4">
-          <p className="text-sm font-semibold text-text-primary">2. Send USDT (TRC20 / TRON network)</p>
+          <p className="text-sm font-semibold text-text-primary">2. Choose network</p>
+          <p className="mt-1 text-xs text-text-secondary">Only send USDT on the network you select below.</p>
+          <div className="mt-3 grid gap-2">
+            {NETWORKS.map((n) => (
+              <button
+                key={n.value}
+                disabled={!n.enabled}
+                onClick={() => setNetwork(n.value)}
+                className={`flex items-center justify-between rounded-lg border px-3.5 py-3 text-left transition-colors ${
+                  network === n.value ? "border-brand bg-brand/10" : "border-border/60"
+                } ${!n.enabled ? "cursor-not-allowed opacity-40" : "hover:border-border"}`}
+              >
+                <span className="text-sm font-semibold text-text-primary">{n.label}</span>
+                {!n.enabled && <span className="text-[10px] font-medium text-text-secondary">Coming soon</span>}
+              </button>
+            ))}
+          </div>
+          {step === 2 && (
+            <button onClick={() => setStep(3)} className="mt-3 text-sm font-semibold text-brand">
+              Continue →
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Step 3 — address */}
+      {step >= 3 && (
+        <div className="rounded-xl border border-border/60 bg-panel p-4">
+          <p className="text-sm font-semibold text-text-primary">3. Send USDT ({network})</p>
           <p className="mt-1 text-xs text-text-secondary">
-            Minimum deposit: {minDeposit} USDT. Send only USDT on the TRON (TRC20) network to this
-            address — other networks or assets cannot be recovered.
+            Send only USDT on the {network} network to this address — other networks or assets cannot be recovered.
           </p>
 
           <div className="mt-3 rounded-lg border border-border/60 bg-panel-2 px-3.5 py-3">
             <p className="text-xs font-semibold text-text-primary">Don't have USDT yet?</p>
             <p className="mt-1 text-xs leading-relaxed text-text-secondary">
-              Buy USDT on an exchange like Binance or OKX first, withdraw it on the TRC20 (TRON)
-              network, then send it to the address below. If you're not sure how, Krypton Support
-              will walk you through it on Telegram.
+              Buy USDT on an exchange like Binance or OKX first, withdraw it on the {network} network,
+              then send it to the address below. If you're not sure how, Krypton Support will walk you
+              through it on Telegram.
             </p>
             <div className="mt-2.5">
               <TelegramButton url={telegramUrl} variant="full" />
@@ -185,7 +217,7 @@ export function DepositForm({
           )}
 
           <button
-            onClick={() => setStep(3)}
+            onClick={() => setStep(4)}
             disabled={addressNotReady}
             className="mt-4 text-sm font-semibold text-brand disabled:opacity-50"
           >
@@ -194,13 +226,13 @@ export function DepositForm({
         </div>
       )}
 
-      {/* Step 3 — tx hash + transaction key */}
-      {step >= 3 && (
+      {/* Step 4 — tx hash + transaction key */}
+      {step >= 4 && (
         <form onSubmit={handleSubmit} className="rounded-xl border border-border/60 bg-panel p-4">
-          <p className="text-sm font-semibold text-text-primary">3. Confirm your deposit</p>
+          <p className="text-sm font-semibold text-text-primary">4. Confirm your deposit</p>
           <p className="mt-1 text-xs text-text-secondary">
-            We'll verify your transaction on-chain automatically — this usually takes under a
-            minute.
+            We'll verify your transaction on-chain automatically, then it appears in your wallet —
+            no waiting on us.
           </p>
           <div className="mt-3 space-y-3">
             <FormField label="Transaction hash">

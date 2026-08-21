@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/Badge";
+import { TradedSymbolBadge } from "@/components/TradedSymbolBadge";
 import { formatUsdt, formatDate, daysRemaining } from "@/lib/format";
 
 export default async function InvestmentsPage() {
@@ -40,7 +41,10 @@ export default async function InvestmentsPage() {
                     Started {formatDate(inv.start_date)} · Matures {formatDate(inv.maturity_date)}
                   </p>
                 </div>
-                <StatusBadge status={inv.status} />
+                <div className="flex flex-col items-end gap-1.5">
+                  <StatusBadge status={inv.status} />
+                  {inv.traded_symbol && <TradedSymbolBadge symbol={inv.traded_symbol} />}
+                </div>
               </div>
 
               <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">

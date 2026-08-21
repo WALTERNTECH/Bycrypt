@@ -7,11 +7,14 @@ import { runDepositVerification } from "@/lib/depositVerification";
 import { verifyTransactionKey } from "@/lib/transactionKey";
 
 const bodySchema = z.object({
-  tier_id: z.number().int().positive(),
   tx_hash: z.string().min(10),
-  transaction_key: z.string().min(1)
+  transaction_key: z.string().min(1),
+  network: z.enum(["TRC20"]).default("TRC20")
 });
 
+// Deposits fund the user's wallet balance directly — no tier is chosen
+// here. Tiers are chosen later, at "buy" time, from wallet funds
+// (see /api/investments/buy).
 export async function POST(req: NextRequest) {
   const supabase = createClient();
   const {
@@ -31,11 +34,14 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
   const { data: profile } = await admin
     .from("profiles")
-    .select("transaction_key_hash")
+    .select("transaction_key_hash, kyc_status")
     .eq("id", user.id)
     .single();
   if (!verifyTransactionKey(parsed.data.transaction_key, profile?.transaction_key_hash)) {
     return NextResponse.json({ error: "Incorrect transaction key." }, { status: 403 });
+  }
+  if (profile?.kyc_status !== "approved") {
+    return NextResponse.json({ error: "Verify your identity before depositing." }, { status: 403 });
   }
 
   const txHash = normalizeTxHash(parsed.data.tx_hash);
@@ -43,23 +49,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "That doesn't look like a valid transaction hash." }, { status: 400 });
   }
 
-  const { data: tier } = await supabase
-    .from("investment_tiers")
-    .select("id")
-    .eq("id", parsed.data.tier_id)
-    .eq("is_active", true)
-    .maybeSingle();
-
-  if (!tier) {
-    return NextResponse.json({ error: "That investment tier isn't available." }, { status: 400 });
-  }
-
   // Insert as the authenticated user so RLS enforces user_id = auth.uid();
   // the DB's UNIQUE(tx_hash) constraint is the last line of defense
   // against double-crediting the same on-chain transaction.
   const { data: deposit, error: insertError } = await supabase
     .from("deposits")
-    .insert({ user_id: user.id, tier_id: parsed.data.tier_id, tx_hash: txHash })
+    .insert({ user_id: user.id, tx_hash: txHash, network: parsed.data.network })
     .select("id")
     .single();
 

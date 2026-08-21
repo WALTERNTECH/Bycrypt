@@ -26,6 +26,7 @@ export default async function AdminInvestmentsPage() {
             <tr className="text-left text-xs uppercase tracking-wide text-text-secondary">
               <th className="px-5 py-3 font-medium">User</th>
               <th className="px-5 py-3 font-medium">Tier</th>
+              <th className="px-5 py-3 font-medium">Trading</th>
               <th className="px-5 py-3 font-medium">Principal</th>
               <th className="px-5 py-3 font-medium">Accrued</th>
               <th className="px-5 py-3 font-medium">Maturity</th>
@@ -38,6 +39,7 @@ export default async function AdminInvestmentsPage() {
               <tr key={inv.id} className="border-t border-border/40">
                 <td className="px-5 py-3 text-text-primary">{inv.profiles?.full_name ?? "—"}</td>
                 <td className="px-5 py-3 text-text-secondary">{inv.investment_tiers?.name ?? "—"}</td>
+                <td className="px-5 py-3 text-text-secondary">{inv.traded_symbol?.replace("USDT", "") ?? "—"}</td>
                 <td className="mono-num px-5 py-3 font-semibold text-text-primary">
                   {formatUsdt(inv.amount, { withSymbol: true })}
                 </td>
@@ -60,7 +62,7 @@ export default async function AdminInvestmentsPage() {
             ))}
             {(investments ?? []).length === 0 && (
               <tr>
-                <td colSpan={7} className="px-5 py-8 text-center text-text-secondary">
+                <td colSpan={8} className="px-5 py-8 text-center text-text-secondary">
                   No investments yet.
                 </td>
               </tr>

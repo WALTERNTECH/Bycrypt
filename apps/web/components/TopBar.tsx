@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { TelegramButton } from "./TelegramButton";
+import { KycBadge } from "./KycBadge";
 import { Logo } from "./Logo";
 
 export async function TopBar() {
@@ -11,7 +12,7 @@ export async function TopBar() {
 
   const [{ data: profile }, { data: config }] = await Promise.all([
     user
-      ? supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
+      ? supabase.from("profiles").select("full_name, kyc_status").eq("id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
     supabase.from("platform_config").select("value").eq("key", "telegram_support_url").maybeSingle()
   ]);
@@ -33,7 +34,10 @@ export async function TopBar() {
           <Logo />
         </Link>
       </div>
-      <TelegramButton url={telegramUrl} />
+      <div className="flex items-center gap-2">
+        <KycBadge status={profile?.kyc_status ?? "unverified"} />
+        <TelegramButton url={telegramUrl} />
+      </div>
     </div>
   );
 }

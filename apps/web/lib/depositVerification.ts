@@ -20,15 +20,17 @@ export interface DepositVerificationOutcome {
 
 /**
  * Runs (or re-runs) on-chain verification for a single deposit and, on
- * success, creates the corresponding investment. Safe to call repeatedly —
- * confirmed/rejected deposits are returned as-is without re-verifying.
+ * success, credits the verified amount straight to the user's wallet
+ * balance — automatically, no admin step required. Safe to call
+ * repeatedly — confirmed/rejected deposits are returned as-is without
+ * re-verifying or double-crediting.
  */
 export async function runDepositVerification(depositId: string): Promise<DepositVerificationOutcome> {
   const admin = createAdminClient();
 
   const { data: deposit, error: depositError } = await admin
     .from("deposits")
-    .select("*, investment_tiers(id, lockup_days, max_return_pct)")
+    .select("*")
     .eq("id", depositId)
     .single();
 
@@ -37,7 +39,7 @@ export async function runDepositVerification(depositId: string): Promise<Deposit
   }
 
   if (deposit.status === "confirmed") {
-    return { status: "confirmed", message: "This deposit is confirmed and your investment is active." };
+    return { status: "confirmed", message: "This deposit is confirmed and the funds are in your wallet." };
   }
   if (deposit.status === "rejected") {
     return {
@@ -63,30 +65,22 @@ export async function runDepositVerification(depositId: string): Promise<Deposit
   const result = await verifyTrc20Deposit(deposit.tx_hash, receivingAddress, USDT_TRC20_CONTRACT_MAINNET);
 
   if (result.ok) {
-    const tier = deposit.investment_tiers as any;
-    const maturityDate = new Date(Date.now() + tier.lockup_days * 24 * 60 * 60 * 1000).toISOString();
-
     await admin
       .from("deposits")
       .update({ status: "confirmed", amount: result.amount, confirmed_at: new Date().toISOString() })
       .eq("id", depositId);
 
-    await admin.from("investments").insert({
-      user_id: deposit.user_id,
-      deposit_id: deposit.id,
-      tier_id: tier.id,
-      amount: result.amount,
-      max_return_pct: tier.max_return_pct,
-      maturity_date: maturityDate
-    });
+    // Atomic increment — safe even if this runs concurrently with a
+    // manual admin reverify.
+    await admin.rpc("credit_wallet_balance", { p_user_id: deposit.user_id, p_amount: result.amount });
 
     await admin.from("notifications").insert({
       user_id: deposit.user_id,
       type: "deposit_confirmed",
-      message: `Your deposit of ${result.amount} USDT was confirmed and your ${tier.lockup_days}-day investment is now active.`
+      message: `Your deposit of ${result.amount} USDT was confirmed and added to your wallet balance.`
     });
 
-    return { status: "confirmed", message: `Deposit of ${result.amount} USDT confirmed. Your investment is now active.` };
+    return { status: "confirmed", message: `Deposit of ${result.amount} USDT confirmed and added to your wallet.` };
   }
 
   const reason = result.reason ?? "verification_error";

@@ -10,12 +10,14 @@ export default async function AdminOverviewPage() {
     { count: userCount },
     { count: pendingDepositCount },
     { count: pendingWithdrawalCount },
+    { count: pendingKycCount },
     { data: activeInvestments },
     { data: latestBotLog }
   ] = await Promise.all([
     supabase.from("profiles").select("*", { count: "exact", head: true }),
     supabase.from("deposits").select("*", { count: "exact", head: true }).eq("status", "pending_verification"),
     supabase.from("withdrawals").select("*", { count: "exact", head: true }).eq("status", "pending"),
+    supabase.from("kyc_submissions").select("*", { count: "exact", head: true }).eq("status", "pending"),
     supabase.from("investments").select("amount, accrued_return").in("status", ["active", "matured"]),
     supabase.from("bot_performance_logs").select("*").order("log_date", { ascending: false }).limit(1).maybeSingle()
   ]);
@@ -30,8 +32,13 @@ export default async function AdminOverviewPage() {
       <h1 className="text-2xl font-bold text-text-primary">Overview</h1>
       <p className="mt-1 text-sm text-text-secondary">Platform-wide snapshot.</p>
 
-      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="mt-6 grid grid-cols-2 gap-4 lg:grid-cols-5">
         <StatCard label="Registered users" value={userCount ?? 0} />
+        <StatCard
+          label="Pending KYC"
+          value={pendingKycCount ?? 0}
+          tone={pendingKycCount ? "brand" : "default"}
+        />
         <StatCard
           label="Pending deposits"
           value={pendingDepositCount ?? 0}
@@ -77,7 +84,10 @@ export default async function AdminOverviewPage() {
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <Link href="/dashboard/withdrawals" className="rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-base hover:bg-brand-hover">
+        <Link href="/dashboard/kyc" className="rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-base hover:bg-brand-hover">
+          Review KYC queue
+        </Link>
+        <Link href="/dashboard/withdrawals" className="rounded-lg border border-border px-4 py-2.5 text-sm font-bold text-text-primary hover:bg-panel-2">
           Review withdrawal queue
         </Link>
         <Link href="/dashboard/deposits" className="rounded-lg border border-border px-4 py-2.5 text-sm font-bold text-text-primary hover:bg-panel-2">
