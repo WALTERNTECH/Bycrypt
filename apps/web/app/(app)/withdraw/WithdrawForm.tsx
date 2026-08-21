@@ -18,13 +18,14 @@ export function WithdrawForm({ investments }: { investments: MaturedInvestment[]
   const router = useRouter();
   const [investmentId, setInvestmentId] = useState<string>(investments[0]?.id ?? "");
   const [address, setAddress] = useState("");
+  const [transactionKey, setTransactionKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   if (investments.length === 0) {
     return (
-      <div className="rounded-xl border border-border/60 bg-panel p-6 text-center text-sm text-text-secondary">
+      <div className="rounded-xl border border-border/60 bg-panel p-6 text-center text-xs text-text-secondary">
         You don't have any matured investments available to withdraw yet.
       </div>
     );
@@ -38,12 +39,20 @@ export function WithdrawForm({ investments }: { investments: MaturedInvestment[]
       setError("Enter a valid TRC20 (TRON) wallet address.");
       return;
     }
+    if (!transactionKey) {
+      setError("Enter your transaction key.");
+      return;
+    }
 
     setLoading(true);
     const res = await fetch("/api/withdrawals", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ investment_id: investmentId, destination_address: address.trim() })
+      body: JSON.stringify({
+        investment_id: investmentId,
+        destination_address: address.trim(),
+        transaction_key: transactionKey
+      })
     });
     const data = await res.json();
     setLoading(false);
@@ -59,8 +68,8 @@ export function WithdrawForm({ investments }: { investments: MaturedInvestment[]
   if (success) {
     return (
       <div className="rounded-xl border border-border/60 bg-panel p-6 text-center">
-        <p className="text-lg font-bold text-brand">Withdrawal requested</p>
-        <p className="mt-2 text-sm text-text-secondary">
+        <p className="text-base font-bold text-brand">Withdrawal requested</p>
+        <p className="mt-2 text-xs text-text-secondary">
           An admin will review your request. You'll be notified once it's processed.
         </p>
       </div>
@@ -71,7 +80,7 @@ export function WithdrawForm({ investments }: { investments: MaturedInvestment[]
   const total = selected ? parseFloat(String(selected.amount)) + parseFloat(String(selected.accrued_return)) : 0;
 
   return (
-    <form onSubmit={handleSubmit} className="rounded-xl border border-border/60 bg-panel p-5 space-y-4">
+    <form onSubmit={handleSubmit} className="rounded-xl border border-border/60 bg-panel p-4 space-y-3">
       <FormField label="Matured investment">
         <select
           className={inputClass}
@@ -87,7 +96,7 @@ export function WithdrawForm({ investments }: { investments: MaturedInvestment[]
       </FormField>
 
       {selected && (
-        <p className="text-sm text-text-secondary">
+        <p className="text-xs text-text-secondary">
           Total payout:{" "}
           <span className="mono-num font-semibold text-positive">{formatUsdt(total, { withSymbol: true })}</span>
           {" "}(principal + accrued return)
@@ -101,6 +110,17 @@ export function WithdrawForm({ investments }: { investments: MaturedInvestment[]
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder="T..."
+        />
+      </FormField>
+
+      <FormField label="Transaction key" hint="The key you set at signup, required to authorize withdrawals.">
+        <input
+          required
+          type="password"
+          className={inputClass}
+          value={transactionKey}
+          onChange={(e) => setTransactionKey(e.target.value)}
+          placeholder="Your transaction key"
         />
       </FormField>
 

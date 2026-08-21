@@ -15,16 +15,16 @@ export default async function InvestmentsPage() {
     .order("created_at", { ascending: false });
 
   return (
-    <div>
-      <h1 className="text-2xl font-bold text-text-primary">Your investments</h1>
-      <p className="mt-1 text-sm text-text-secondary">
-        Every investment activated from a confirmed deposit, with its maturity date and accrued
+    <div className="px-4 pt-5 sm:px-6">
+      <h1 className="text-lg font-bold text-text-primary">Your investments</h1>
+      <p className="mt-1 text-xs text-text-secondary">
+        Every investment activated from a confirmed deposit, with maturity date and accrued
         return.
       </p>
 
-      <div className="mt-6 grid gap-4">
+      <div className="mt-4 grid gap-3">
         {(investments ?? []).length === 0 && (
-          <div className="rounded-xl border border-border/60 bg-panel p-8 text-center text-sm text-text-secondary">
+          <div className="rounded-xl border border-border/60 bg-panel p-8 text-center text-xs text-text-secondary">
             You don't have any investments yet. Make a deposit to get started.
           </div>
         )}
@@ -32,7 +32,7 @@ export default async function InvestmentsPage() {
           const tier = inv.investment_tiers as any;
           const remaining = daysRemaining(inv.maturity_date);
           return (
-            <div key={inv.id} className="rounded-xl border border-border/60 bg-panel p-5">
+            <div key={inv.id} className="rounded-xl border border-border/60 bg-panel p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-text-primary">{tier?.name ?? "Investment"}</p>
@@ -43,25 +43,25 @@ export default async function InvestmentsPage() {
                 <StatusBadge status={inv.status} />
               </div>
 
-              <div className="mt-4 grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
                 <div>
-                  <p className="text-xs text-text-secondary">Principal</p>
+                  <p className="text-[10px] text-text-secondary">Principal</p>
                   <p className="mono-num mt-0.5 text-sm font-semibold text-text-primary">
                     {formatUsdt(inv.amount, { withSymbol: true })}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-text-secondary">Max return</p>
+                  <p className="text-[10px] text-text-secondary">Max return</p>
                   <p className="mono-num mt-0.5 text-sm font-semibold text-positive">Up to {inv.max_return_pct}%</p>
                 </div>
                 <div>
-                  <p className="text-xs text-text-secondary">Accrued return</p>
+                  <p className="text-[10px] text-text-secondary">Accrued return</p>
                   <p className="mono-num mt-0.5 text-sm font-semibold text-positive">
                     {formatUsdt(inv.accrued_return, { withSymbol: true })}
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-text-secondary">
+                  <p className="text-[10px] text-text-secondary">
                     {inv.status === "active" ? "Days remaining" : "Status"}
                   </p>
                   <p className="mono-num mt-0.5 text-sm font-semibold text-text-primary">
@@ -71,7 +71,7 @@ export default async function InvestmentsPage() {
               </div>
 
               {inv.status === "matured" && (
-                <a href="/dashboard/withdraw" className="mt-4 inline-block text-sm font-semibold text-brand">
+                <a href="/withdraw" className="mt-3 inline-block text-xs font-semibold text-brand">
                   This investment is ready to withdraw →
                 </a>
               )}

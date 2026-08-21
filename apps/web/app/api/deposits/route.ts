@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { isValidTxHash, normalizeTxHash } from "@/lib/tron-address";
 import { runDepositVerification } from "@/lib/depositVerification";
+import { verifyTransactionKey } from "@/lib/transactionKey";
 
 const bodySchema = z.object({
   tier_id: z.number().int().positive(),
-  tx_hash: z.string().min(10)
+  tx_hash: z.string().min(10),
+  transaction_key: z.string().min(1)
 });
 
 export async function POST(req: NextRequest) {
@@ -23,6 +26,16 @@ export async function POST(req: NextRequest) {
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid request" }, { status: 400 });
+  }
+
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("transaction_key_hash")
+    .eq("id", user.id)
+    .single();
+  if (!verifyTransactionKey(parsed.data.transaction_key, profile?.transaction_key_hash)) {
+    return NextResponse.json({ error: "Incorrect transaction key." }, { status: 403 });
   }
 
   const txHash = normalizeTxHash(parsed.data.tx_hash);

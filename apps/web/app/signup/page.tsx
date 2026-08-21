@@ -3,21 +3,21 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { AuthCard } from "@/components/AuthCard";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
+import { isValidTransactionKey } from "@/lib/transactionKey";
 
 export default function SignupPage() {
   const router = useRouter();
-  const supabase = createClient();
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
+  const [transactionKey, setTransactionKey] = useState("");
+  const [confirmKey, setConfirmKey] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -31,48 +31,38 @@ export default function SignupPage() {
       setError("Password must be at least 8 characters.");
       return;
     }
-
-    setLoading(true);
-    const { data, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { full_name: fullName, phone: phone || null } }
-    });
-    setLoading(false);
-
-    if (signUpError) {
-      setError(signUpError.message);
+    if (!isValidTransactionKey(transactionKey)) {
+      setError("Transaction key must be 6-32 letters/numbers.");
+      return;
+    }
+    if (transactionKey !== confirmKey) {
+      setError("Transaction keys don't match.");
       return;
     }
 
-    if (data.session) {
-      router.push("/dashboard");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: fullName,
+          email,
+          phone: phone || null,
+          password,
+          transaction_key: transactionKey
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error ?? "Something went wrong creating your account.");
+        return;
+      }
+      router.push("/");
       router.refresh();
-    } else {
-      // Email confirmation required by project settings
-      setDone(true);
+    } finally {
+      setLoading(false);
     }
-  }
-
-  if (done) {
-    return (
-      <AuthCard
-        title="Check your inbox"
-        subtitle="We've sent a confirmation link to finish setting up your account."
-        footer={
-          <>
-            Already confirmed?{" "}
-            <Link href="/login" className="font-semibold text-brand">
-              Log in
-            </Link>
-          </>
-        }
-      >
-        <p className="text-sm text-text-secondary">
-          Once confirmed, come back and log in with your email and password.
-        </p>
-      </AuthCard>
-    );
   }
 
   return (
@@ -126,6 +116,34 @@ export default function SignupPage() {
             placeholder="••••••••"
           />
         </FormField>
+
+        <div className="rounded-lg border border-border/60 bg-panel-2 p-3.5">
+          <p className="text-sm font-medium text-text-primary">Transaction key</p>
+          <p className="mt-0.5 text-xs text-text-secondary">
+            A separate key you'll enter to authorize every deposit and withdrawal — keep it safe,
+            it's not your login password.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <FormField label="Set transaction key">
+              <input
+                required
+                className={inputClass}
+                value={transactionKey}
+                onChange={(e) => setTransactionKey(e.target.value)}
+                placeholder="6-32 letters/numbers"
+              />
+            </FormField>
+            <FormField label="Confirm transaction key">
+              <input
+                required
+                className={inputClass}
+                value={confirmKey}
+                onChange={(e) => setConfirmKey(e.target.value)}
+                placeholder="Re-enter key"
+              />
+            </FormField>
+          </div>
+        </div>
 
         <label className="flex items-start gap-2 text-xs text-text-secondary">
           <input

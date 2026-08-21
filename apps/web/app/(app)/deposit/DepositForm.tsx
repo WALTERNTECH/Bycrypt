@@ -13,17 +13,21 @@ export function DepositForm({
   tiers,
   depositAddress,
   minDeposit,
-  telegramUrl
+  telegramUrl,
+  preselectedTier
 }: {
   tiers: Tier[];
   depositAddress: string;
   minDeposit: number;
   telegramUrl: string;
+  preselectedTier?: number | null;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | 3>(1);
-  const [tierId, setTierId] = useState<number | null>(null);
+  const initialTierValid = preselectedTier && tiers.some((t) => t.id === preselectedTier);
+  const [step, setStep] = useState<1 | 2 | 3>(initialTierValid ? 2 : 1);
+  const [tierId, setTierId] = useState<number | null>(initialTierValid ? preselectedTier! : null);
   const [txHash, setTxHash] = useState("");
+  const [transactionKey, setTransactionKey] = useState("");
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,13 +61,17 @@ export function DepositForm({
       setError("That doesn't look like a valid transaction hash (64 hex characters).");
       return;
     }
+    if (!transactionKey) {
+      setError("Enter your transaction key.");
+      return;
+    }
 
     setLoading(true);
     try {
       const res = await fetch("/api/deposits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier_id: tierId, tx_hash: txHash.trim() })
+        body: JSON.stringify({ tier_id: tierId, tx_hash: txHash.trim(), transaction_key: transactionKey })
       });
       const data = await res.json();
       if (!res.ok) {
@@ -87,7 +95,7 @@ export function DepositForm({
         </p>
         <p className="mt-2 text-sm text-text-secondary">{result.message}</p>
         {confirmed ? (
-          <a href="/dashboard/investments" className="mt-5 inline-block text-sm font-semibold text-brand">
+          <a href="/investments" className="mt-5 inline-block text-sm font-semibold text-brand">
             View your investments →
           </a>
         ) : rejected ? (
@@ -111,9 +119,9 @@ export function DepositForm({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Step 1 — tier */}
-      <div className="rounded-xl border border-border/60 bg-panel p-5">
+      <div className="rounded-xl border border-border/60 bg-panel p-4">
         <p className="text-sm font-semibold text-text-primary">1. Choose your lockup tier</p>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
           {tiers.map((t) => (
@@ -136,7 +144,7 @@ export function DepositForm({
 
       {/* Step 2 — address */}
       {step >= 2 && selectedTier && (
-        <div className="rounded-xl border border-border/60 bg-panel p-5">
+        <div className="rounded-xl border border-border/60 bg-panel p-4">
           <p className="text-sm font-semibold text-text-primary">2. Send USDT (TRC20 / TRON network)</p>
           <p className="mt-1 text-xs text-text-secondary">
             Minimum deposit: {minDeposit} USDT. Send only USDT on the TRON (TRC20) network to this
@@ -186,14 +194,15 @@ export function DepositForm({
         </div>
       )}
 
-      {/* Step 3 — tx hash */}
+      {/* Step 3 — tx hash + transaction key */}
       {step >= 3 && (
-        <form onSubmit={handleSubmit} className="rounded-xl border border-border/60 bg-panel p-5">
-          <p className="text-sm font-semibold text-text-primary">3. Submit your transaction hash</p>
+        <form onSubmit={handleSubmit} className="rounded-xl border border-border/60 bg-panel p-4">
+          <p className="text-sm font-semibold text-text-primary">3. Confirm your deposit</p>
           <p className="mt-1 text-xs text-text-secondary">
-            We'll verify it on-chain automatically — this usually takes under a minute.
+            We'll verify your transaction on-chain automatically — this usually takes under a
+            minute.
           </p>
-          <div className="mt-3">
+          <div className="mt-3 space-y-3">
             <FormField label="Transaction hash">
               <input
                 required
@@ -201,6 +210,16 @@ export function DepositForm({
                 value={txHash}
                 onChange={(e) => setTxHash(e.target.value)}
                 placeholder="a1b2c3...d9"
+              />
+            </FormField>
+            <FormField label="Transaction key" hint="The key you set at signup, required to authorize deposits.">
+              <input
+                required
+                type="password"
+                className={inputClass}
+                value={transactionKey}
+                onChange={(e) => setTransactionKey(e.target.value)}
+                placeholder="Your transaction key"
               />
             </FormField>
           </div>
