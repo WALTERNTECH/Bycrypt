@@ -5,7 +5,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
 import { formatUsdt } from "@/lib/format";
-import type { Tier } from "@/components/TierCard";
+import type { Tier } from "@/lib/types";
+
+function returnLabel(t: Tier): string {
+  if (t.min_return_pct != null && t.max_return_pct == null) return `Min ${t.min_return_pct}%, uncapped`;
+  if (t.min_return_pct != null && t.max_return_pct != null) return `${t.min_return_pct}–${t.max_return_pct}%`;
+  if (t.max_return_pct != null) return `Up to ${t.max_return_pct}%`;
+  return "Variable";
+}
 
 export function TradeFlow({
   tiers,
@@ -116,7 +123,7 @@ export function TradeFlow({
               }`}
             >
               <p className="text-sm font-bold text-text-primary">{t.lockup_days}d</p>
-              <p className="mono-num text-xs text-positive">Up to {t.max_return_pct}%</p>
+              <p className="mono-num text-xs text-positive">{returnLabel(t)}</p>
             </button>
           ))}
         </div>
@@ -125,7 +132,7 @@ export function TradeFlow({
       {selectedTier && (
         <form onSubmit={handleSubmit} className="rounded-xl border border-border/60 bg-panel p-4">
           <p className="text-sm font-semibold text-text-primary">
-            {selectedTier.lockup_days}-day plan · up to {selectedTier.max_return_pct}%
+            {selectedTier.lockup_days}-day plan · {returnLabel(selectedTier)}
           </p>
           <div className="mt-3 space-y-3">
             <FormField label="Amount (USDT)" hint={`Between ${minAmount} and ${formatUsdt(walletBalance)} available.`}>

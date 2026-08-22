@@ -6,6 +6,7 @@ import { SignOutButton } from "@/components/SignOutButton";
 
 const navItems = [
   { href: "/dashboard", label: "Overview" },
+  { href: "/dashboard/notifications", label: "Notifications" },
   { href: "/dashboard/users", label: "Users" },
   { href: "/dashboard/kyc", label: "KYC" },
   { href: "/dashboard/deposits", label: "Deposits" },
@@ -30,6 +31,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
     .maybeSingle();
   if (!adminRow) redirect("/login");
 
+  const { count: unreadCount } = await supabase
+    .from("notifications")
+    .select("*", { count: "exact", head: true })
+    .eq("admin_id", user.id)
+    .eq("is_read", false);
+
   return (
     <div className="min-h-screen bg-base lg:flex">
       <aside className="border-b border-border/60 bg-panel lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r">
@@ -43,9 +50,14 @@ export default async function DashboardLayout({ children }: { children: React.Re
             <Link
               key={item.href}
               href={item.href}
-              className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-panel-2 hover:text-text-primary"
+              className="flex items-center justify-between whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-panel-2 hover:text-text-primary"
             >
               {item.label}
+              {item.href === "/dashboard/notifications" && !!unreadCount && (
+                <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-base">
+                  {unreadCount}
+                </span>
+              )}
             </Link>
           ))}
         </nav>

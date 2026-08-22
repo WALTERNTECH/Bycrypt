@@ -1,32 +1,30 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
 import { isValidTronAddress } from "@/lib/tron-address";
 import { formatUsdt } from "@/lib/format";
 
-interface MaturedInvestment {
-  id: string;
-  amount: number;
-  accrued_return: number;
-  maturity_date: string;
-  investment_tiers: { name: string } | null;
-}
-
-export function WithdrawForm({ investments }: { investments: MaturedInvestment[] }) {
+export function WithdrawForm({ walletBalance }: { walletBalance: number }) {
   const router = useRouter();
-  const [investmentId, setInvestmentId] = useState<string>(investments[0]?.id ?? "");
+  const [amount, setAmount] = useState("");
   const [address, setAddress] = useState("");
   const [transactionKey, setTransactionKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  if (investments.length === 0) {
+  if (walletBalance <= 0) {
     return (
       <div className="rounded-xl border border-border/60 bg-panel p-6 text-center text-xs text-text-secondary">
-        You don't have any matured investments available to withdraw yet.
+        Your wallet balance is empty. Deposit funds or cash out a profitable investment first.
+        <div className="mt-3">
+          <Link href="/deposit" className="text-sm font-semibold text-brand">
+            Go to Deposit →
+          </Link>
+        </div>
       </div>
     );
   }
@@ -35,6 +33,11 @@ export function WithdrawForm({ investments }: { investments: MaturedInvestment[]
     e.preventDefault();
     setError(null);
 
+    const parsedAmount = parseFloat(amount);
+    if (Number.isNaN(parsedAmount) || parsedAmount <= 0 || parsedAmount > walletBalance) {
+      setError(`Enter an amount between 0 and ${formatUsdt(walletBalance)} USDT.`);
+      return;
+    }
     if (!isValidTronAddress(address)) {
       setError("Enter a valid TRC20 (TRON) wallet address.");
       return;
@@ -49,7 +52,7 @@ export function WithdrawForm({ investments }: { investments: MaturedInvestment[]
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        investment_id: investmentId,
+        amount: parsedAmount,
         destination_address: address.trim(),
         transaction_key: transactionKey
       })
@@ -70,38 +73,27 @@ export function WithdrawForm({ investments }: { investments: MaturedInvestment[]
       <div className="rounded-xl border border-border/60 bg-panel p-6 text-center">
         <p className="text-base font-bold text-brand">Withdrawal requested</p>
         <p className="mt-2 text-xs text-text-secondary">
-          An admin will review your request. You'll be notified once it's processed.
+          Krypton Support will review and send your funds. You'll be notified once it's processed.
         </p>
       </div>
     );
   }
 
-  const selected = investments.find((i) => i.id === investmentId);
-  const total = selected ? parseFloat(String(selected.amount)) + parseFloat(String(selected.accrued_return)) : 0;
-
   return (
     <form onSubmit={handleSubmit} className="rounded-xl border border-border/60 bg-panel p-4 space-y-3">
-      <FormField label="Matured investment">
-        <select
-          className={inputClass}
-          value={investmentId}
-          onChange={(e) => setInvestmentId(e.target.value)}
-        >
-          {investments.map((inv) => (
-            <option key={inv.id} value={inv.id}>
-              {inv.investment_tiers?.name ?? "Investment"} — {formatUsdt(inv.amount, { withSymbol: true })} principal
-            </option>
-          ))}
-        </select>
-      </FormField>
+      <p className="text-xs text-text-secondary">
+        Available: <span className="mono-num font-semibold text-text-primary">{formatUsdt(walletBalance, { withSymbol: true })}</span>
+      </p>
 
-      {selected && (
-        <p className="text-xs text-text-secondary">
-          Total payout:{" "}
-          <span className="mono-num font-semibold text-positive">{formatUsdt(total, { withSymbol: true })}</span>
-          {" "}(principal + accrued return)
-        </p>
-      )}
+      <FormField label="Amount (USDT)">
+        <input
+          inputMode="decimal"
+          className={inputClass}
+          value={amount}
+          onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
+          placeholder={String(walletBalance)}
+        />
+      </FormField>
 
       <FormField label="Destination TRC20 wallet address" hint="Funds are sent only to a TRON (TRC20) address you control.">
         <input

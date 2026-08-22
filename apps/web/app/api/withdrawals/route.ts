@@ -6,15 +6,23 @@ import { isValidTronAddress } from "@/lib/tron-address";
 import { verifyTransactionKey } from "@/lib/transactionKey";
 
 const bodySchema = z.object({
-  investment_id: z.string().uuid(),
+  amount: z.number().positive(),
   destination_address: z.string().min(10),
   transaction_key: z.string().min(1)
 });
 
-// Note: this only records a withdrawal request for admin review. Krypton
-// never holds or moves crypto funds itself (PRD 10) — an admin sends the
-// payout manually from the platform's own wallet and records the tx_hash
-// once approved (see admin app).
+const REASON_MESSAGES: Record<string, string> = {
+  not_authenticated: "Please log in again.",
+  invalid_amount: "Enter a valid amount.",
+  insufficient_balance: "That's more than your available wallet balance."
+};
+
+// Note: this only records a withdrawal request for admin review — the
+// requested amount is reserved out of wallet_balance immediately
+// (request_withdrawal() is atomic) so it can't be double-spent. Krypton
+// never holds or moves crypto funds itself — Support sends the payout
+// manually from the platform's own wallet and records the tx_hash once
+// approved (see admin app). A rejected request refunds the reservation.
 export async function POST(req: NextRequest) {
   const supabase = createClient();
   const {
@@ -40,44 +48,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Incorrect transaction key." }, { status: 403 });
   }
 
-  // Re-check ownership + maturity server-side — never trust the client.
-  const { data: investment } = await supabase
-    .from("investments")
-    .select("id, user_id, status, amount, accrued_return")
-    .eq("id", parsed.data.investment_id)
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const { data: withdrawalId, error } = await supabase.rpc("request_withdrawal", {
+    p_amount: parsed.data.amount,
+    p_destination_address: parsed.data.destination_address
+  });
 
-  if (!investment) return NextResponse.json({ error: "Investment not found." }, { status: 404 });
-  if (investment.status !== "matured") {
-    return NextResponse.json({ error: "This investment hasn't matured yet." }, { status: 400 });
-  }
-
-  const { data: existing } = await supabase
-    .from("withdrawals")
-    .select("id")
-    .eq("investment_id", investment.id)
-    .in("status", ["pending", "approved", "processed"])
-    .maybeSingle();
-  if (existing) {
-    return NextResponse.json({ error: "A withdrawal request already exists for this investment." }, { status: 409 });
-  }
-
-  const amount = parseFloat(String(investment.amount)) + parseFloat(String(investment.accrued_return));
-
-  const { data: withdrawal, error: insertError } = await supabase
-    .from("withdrawals")
-    .insert({
-      user_id: user.id,
-      investment_id: investment.id,
-      amount,
-      destination_address: parsed.data.destination_address
-    })
-    .select("id")
-    .single();
-
-  if (insertError) {
-    return NextResponse.json({ error: "Could not create the withdrawal request." }, { status: 500 });
+  if (error) {
+    const reason = Object.keys(REASON_MESSAGES).find((k) => error.message.includes(k));
+    return NextResponse.json({ error: reason ? REASON_MESSAGES[reason] : "Could not submit that request." }, { status: 400 });
   }
 
   // Notify admins (service role — no admin-scoped RLS insert policy exists).
@@ -87,10 +65,10 @@ export async function POST(req: NextRequest) {
       admins.map((a) => ({
         admin_id: a.id,
         type: "withdrawal_requested",
-        message: `New withdrawal request for ${amount.toFixed(2)} USDT is awaiting review.`
+        message: `New withdrawal request for ${parsed.data.amount.toFixed(2)} USDT is awaiting review.`
       }))
     );
   }
 
-  return NextResponse.json({ withdrawal_id: withdrawal.id, status: "pending" }, { status: 201 });
+  return NextResponse.json({ withdrawal_id: withdrawalId, status: "pending" }, { status: 201 });
 }

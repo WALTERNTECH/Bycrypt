@@ -30,10 +30,16 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     .update({ status: "rejected", admin_id: admin.id, rejection_reason: parsed.data.reason })
     .eq("id", params.id);
 
+  // The requested amount was reserved out of wallet_balance the moment
+  // the user submitted the request (see request_withdrawal()) — refund
+  // it now that the request is being rejected. Plain increment, no
+  // referral side effects (this isn't new money, it's a reversal).
+  await supabaseAdmin.rpc("increment_wallet_balance", { p_user_id: withdrawal.user_id, p_amount: withdrawal.amount });
+
   await supabaseAdmin.from("notifications").insert({
     user_id: withdrawal.user_id,
     type: "withdrawal_rejected",
-    message: `Your withdrawal request for ${withdrawal.amount} USDT was rejected: ${parsed.data.reason}`
+    message: `Your withdrawal request for ${withdrawal.amount} USDT was rejected and refunded to your wallet: ${parsed.data.reason}`
   });
 
   await logAdminAction(admin.id, "reject_withdrawal", "withdrawal", params.id, { reason: parsed.data.reason });

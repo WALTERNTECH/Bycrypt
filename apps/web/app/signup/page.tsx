@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthCard } from "@/components/AuthCard";
@@ -9,6 +9,12 @@ import { isValidTransactionKey } from "@/lib/transactionKey";
 
 export default function SignupPage() {
   const router = useRouter();
+  const [refCode, setRefCode] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRefCode(new URLSearchParams(window.location.search).get("ref"));
+  }, []);
+
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -50,7 +56,8 @@ export default function SignupPage() {
           email,
           phone: phone || null,
           password,
-          transaction_key: transactionKey
+          transaction_key: transactionKey,
+          ref_code: refCode || null
         })
       });
       const data = await res.json();
@@ -152,9 +159,15 @@ export default function SignupPage() {
             onChange={(e) => setAgreed(e.target.checked)}
             className="mt-0.5 accent-brand"
           />
-          I accept Krypton's Terms of Service and understand that returns are variable, capped
-          maximums and are never guaranteed.
+          I accept Krypton's Terms of Service and understand that returns are variable and are
+          never guaranteed.
         </label>
+
+        {refCode && (
+          <p className="rounded-lg border border-brand/30 bg-brand/10 px-3 py-2 text-xs text-brand">
+            Referred with code {refCode}
+          </p>
+        )}
 
         {error && <p className="text-sm text-negative">{error}</p>}
 

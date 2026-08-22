@@ -9,29 +9,21 @@ export default async function WithdrawPage() {
     data: { user }
   } = await supabase.auth.getUser();
 
-  const [{ data: maturedInvestments }, { data: withdrawals }] = await Promise.all([
-    supabase
-      .from("investments")
-      .select("id, amount, accrued_return, maturity_date, investment_tiers(name)")
-      .eq("user_id", user!.id)
-      .eq("status", "matured")
-      .order("maturity_date"),
-    supabase
-      .from("withdrawals")
-      .select("*")
-      .eq("user_id", user!.id)
-      .order("requested_at", { ascending: false })
+  const [{ data: profile }, { data: withdrawals }] = await Promise.all([
+    supabase.from("profiles").select("wallet_balance").eq("id", user!.id).single(),
+    supabase.from("withdrawals").select("*").eq("user_id", user!.id).order("requested_at", { ascending: false })
   ]);
 
   return (
     <div className="px-4 pt-5 sm:px-6">
       <h1 className="text-lg font-bold text-text-primary">Withdraw</h1>
       <p className="mt-1 text-xs text-text-secondary">
-        Available once an investment matures. An admin reviews every request before payout.
+        Withdraw from your wallet balance to any TRC20 address. Krypton Support reviews and sends
+        every request.
       </p>
 
       <div className="mt-4">
-        <WithdrawForm investments={(maturedInvestments as any) ?? []} />
+        <WithdrawForm walletBalance={parseFloat(String(profile?.wallet_balance ?? 0))} />
       </div>
 
       <div className="mt-8">
@@ -45,6 +37,7 @@ export default async function WithdrawPage() {
                 <tr className="text-left uppercase tracking-wide text-text-secondary">
                   <th className="px-4 py-2.5 font-medium">Requested</th>
                   <th className="px-4 py-2.5 font-medium">Amount</th>
+                  <th className="px-4 py-2.5 font-medium">To</th>
                   <th className="px-4 py-2.5 font-medium">Status</th>
                 </tr>
               </thead>
@@ -54,6 +47,9 @@ export default async function WithdrawPage() {
                     <td className="px-4 py-2.5 text-text-secondary">{formatDateTime(w.requested_at)}</td>
                     <td className="mono-num px-4 py-2.5 font-semibold text-text-primary">
                       {formatUsdt(w.amount, { withSymbol: true })}
+                    </td>
+                    <td className="px-4 py-2.5 font-mono text-[10px] text-text-secondary">
+                      {truncateMiddle(w.destination_address)}
                     </td>
                     <td className="px-4 py-2.5">
                       <StatusBadge status={w.status} />

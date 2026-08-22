@@ -70,7 +70,12 @@ export function DepositForm({
       const res = await fetch("/api/deposits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tx_hash: txHash.trim(), transaction_key: transactionKey, network })
+        body: JSON.stringify({
+          tx_hash: txHash.trim(),
+          transaction_key: transactionKey,
+          network,
+          claimed_amount: parseFloat(amount) || null
+        })
       });
       const data = await res.json();
       if (!res.ok) {
@@ -90,7 +95,7 @@ export function DepositForm({
     return (
       <div className="rounded-xl border border-border/60 bg-panel p-6 text-center">
         <p className={`text-lg font-bold ${confirmed ? "text-positive" : rejected ? "text-negative" : "text-brand"}`}>
-          {confirmed ? "Deposit confirmed!" : rejected ? "Deposit could not be verified" : "Verifying on-chain…"}
+          {confirmed ? "Deposit confirmed!" : rejected ? "Deposit could not be verified" : "Awaiting confirmation…"}
         </p>
         <p className="mt-2 text-sm text-text-secondary">{result.message}</p>
         {confirmed ? (
@@ -231,8 +236,8 @@ export function DepositForm({
         <form onSubmit={handleSubmit} className="rounded-xl border border-border/60 bg-panel p-4">
           <p className="text-sm font-semibold text-text-primary">4. Confirm your deposit</p>
           <p className="mt-1 text-xs text-text-secondary">
-            We'll verify your transaction on-chain automatically, then it appears in your wallet —
-            no waiting on us.
+            We attempt on-chain verification automatically, and our team also confirms every
+            deposit manually — your wallet is credited as soon as either check clears.
           </p>
           <div className="mt-3 space-y-3">
             <FormField label="Transaction hash">

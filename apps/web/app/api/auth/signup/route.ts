@@ -10,7 +10,8 @@ const bodySchema = z.object({
   email: z.string().email(),
   phone: z.string().max(20).optional().nullable(),
   password: z.string().min(8).max(72),
-  transaction_key: z.string()
+  transaction_key: z.string(),
+  ref_code: z.string().max(12).optional().nullable()
 });
 
 // Signup is handled server-side and the account is created pre-confirmed.
@@ -26,7 +27,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Please check your details and try again." }, { status: 400 });
   }
-  const { full_name, email, phone, password, transaction_key } = parsed.data;
+  const { full_name, email, phone, password, transaction_key, ref_code } = parsed.data;
 
   if (!isValidTransactionKey(transaction_key)) {
     return NextResponse.json(
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
     email,
     password,
     email_confirm: true,
-    user_metadata: { full_name, phone: phone || null }
+    user_metadata: { full_name, phone: phone || null, ref_code: ref_code || null }
   });
 
   if (createError) {

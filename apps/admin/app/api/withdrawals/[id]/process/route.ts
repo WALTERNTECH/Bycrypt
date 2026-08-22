@@ -34,7 +34,11 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
     .update({ status: "processed", tx_hash: parsed.data.tx_hash, processed_at: new Date().toISOString() })
     .eq("id", params.id);
 
-  await supabaseAdmin.from("investments").update({ status: "withdrawn" }).eq("id", withdrawal.investment_id);
+  // Withdrawals draw from the unified wallet balance now, not a single
+  // investment — investment_id is only ever set on legacy rows.
+  if (withdrawal.investment_id) {
+    await supabaseAdmin.from("investments").update({ status: "withdrawn" }).eq("id", withdrawal.investment_id);
+  }
 
   await supabaseAdmin.from("notifications").insert({
     user_id: withdrawal.user_id,

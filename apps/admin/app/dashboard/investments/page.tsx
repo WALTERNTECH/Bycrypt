@@ -7,7 +7,7 @@ export default async function AdminInvestmentsPage() {
   const supabase = createClient();
   const { data: investments } = await supabase
     .from("investments")
-    .select("*, profiles(full_name), investment_tiers(name)")
+    .select("*, profiles(full_name), investment_tiers(name, min_return_pct)")
     .order("created_at", { ascending: false })
     .limit(200);
 
@@ -44,7 +44,7 @@ export default async function AdminInvestmentsPage() {
                   {formatUsdt(inv.amount, { withSymbol: true })}
                 </td>
                 <td className="mono-num px-5 py-3 font-semibold text-positive">
-                  {formatUsdt(inv.accrued_return, { withSymbol: true })} (max {inv.max_return_pct}%)
+                  {formatUsdt(inv.accrued_return, { withSymbol: true })}
                 </td>
                 <td className="px-5 py-3 text-text-secondary">{formatDate(inv.maturity_date)}</td>
                 <td className="px-5 py-3">
@@ -54,7 +54,7 @@ export default async function AdminInvestmentsPage() {
                   <AccrueForm
                     investmentId={inv.id}
                     principal={parseFloat(inv.amount)}
-                    maxReturnPct={parseFloat(inv.max_return_pct)}
+                    minReturnPct={inv.investment_tiers?.min_return_pct ? parseFloat(inv.investment_tiers.min_return_pct) : null}
                     currentAccrued={parseFloat(inv.accrued_return)}
                   />
                 </td>

@@ -9,12 +9,20 @@ import { verifyTransactionKey } from "@/lib/transactionKey";
 const bodySchema = z.object({
   tx_hash: z.string().min(10),
   transaction_key: z.string().min(1),
-  network: z.enum(["TRC20"]).default("TRC20")
+  network: z.enum(["TRC20"]).default("TRC20"),
+  claimed_amount: z.number().positive().nullable().optional()
 });
 
 // Deposits fund the user's wallet balance directly — no tier is chosen
 // here. Tiers are chosen later, at "buy" time, from wallet funds
 // (see /api/investments/buy).
+//
+// Verification runs automatically where possible, but Krypton Support
+// also reconciles every deposit manually — this route notifies every
+// active admin the moment a deposit is submitted, with the user's own
+// claimed amount, so it can be matched against a block explorer and
+// credited by hand from the admin Deposits queue regardless of whether
+// automatic verification succeeds.
 export async function POST(req: NextRequest) {
   const supabase = createClient();
   const {
@@ -34,7 +42,7 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
   const { data: profile } = await admin
     .from("profiles")
-    .select("transaction_key_hash, kyc_status")
+    .select("full_name, transaction_key_hash, kyc_status")
     .eq("id", user.id)
     .single();
   if (!verifyTransactionKey(parsed.data.transaction_key, profile?.transaction_key_hash)) {
@@ -54,7 +62,12 @@ export async function POST(req: NextRequest) {
   // against double-crediting the same on-chain transaction.
   const { data: deposit, error: insertError } = await supabase
     .from("deposits")
-    .insert({ user_id: user.id, tx_hash: txHash, network: parsed.data.network })
+    .insert({
+      user_id: user.id,
+      tx_hash: txHash,
+      network: parsed.data.network,
+      claimed_amount: parsed.data.claimed_amount ?? null
+    })
     .select("id")
     .single();
 
@@ -68,13 +81,31 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Could not create the deposit record." }, { status: 500 });
   }
 
+  // Notify admins immediately — this is the reconciliation queue entry,
+  // independent of whether automatic verification below succeeds.
+  const { data: admins } = await admin.from("admin_users").select("id").eq("is_active", true);
+  if (admins && admins.length > 0) {
+    const amountText = parsed.data.claimed_amount ? `${parsed.data.claimed_amount} USDT` : "an unspecified amount";
+    await admin.from("notifications").insert(
+      admins.map((a) => ({
+        admin_id: a.id,
+        type: "deposit_submitted",
+        message: `${profile?.full_name ?? "A user"} submitted a deposit of ${amountText} (tx ${txHash.slice(0, 10)}…) — reconcile in the Deposits queue.`
+      }))
+    );
+  }
+
   try {
     const outcome = await runDepositVerification(deposit.id);
     const httpStatus = outcome.status === "rejected" ? 400 : outcome.status === "confirmed" ? 200 : 202;
     return NextResponse.json({ deposit_id: deposit.id, ...outcome }, { status: httpStatus });
   } catch {
     return NextResponse.json(
-      { deposit_id: deposit.id, status: "pending_verification", message: "Submitted — we're verifying it now." },
+      {
+        deposit_id: deposit.id,
+        status: "pending_verification",
+        message: "Submitted — our team will confirm it shortly."
+      },
       { status: 202 }
     );
   }

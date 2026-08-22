@@ -12,6 +12,10 @@ export default async function UserDetailPage({ params }: { params: { id: string 
   const admin = createAdminClient();
   const { data: authUser } = await admin.auth.admin.getUserById(params.id);
 
+  const referrerName = profile.referred_by
+    ? (await admin.from("profiles").select("full_name").eq("id", profile.referred_by).maybeSingle()).data?.full_name
+    : null;
+
   const [{ data: deposits }, { data: investments }, { data: withdrawals }, { data: kycSubmissions }] = await Promise.all([
     supabase.from("deposits").select("*").eq("user_id", params.id).order("submitted_at", { ascending: false }),
     supabase
@@ -35,7 +39,19 @@ export default async function UserDetailPage({ params }: { params: { id: string 
         <span className="mono-num rounded-md bg-panel-2 px-2 py-0.5 text-xs font-semibold text-text-primary">
           Wallet: {formatUsdt(profile.wallet_balance ?? 0, { withSymbol: true })}
         </span>
+        <span className="mono-num rounded-md bg-panel-2 px-2 py-0.5 text-xs font-semibold text-positive">
+          Referral earnings: {formatUsdt(profile.referral_balance ?? 0, { withSymbol: true })}
+        </span>
       </div>
+      <p className="mt-2 text-xs text-text-secondary">
+        Referral code: <span className="font-mono text-text-primary">{profile.referral_code}</span>
+        {referrerName && (
+          <>
+            {" "}
+            · Referred by <span className="text-text-primary">{referrerName}</span>
+          </>
+        )}
+      </p>
 
       <Section title="KYC submissions">
         <Table
@@ -63,7 +79,8 @@ export default async function UserDetailPage({ params }: { params: { id: string 
           empty="No deposits."
           columns={[
             { header: "Submitted", cell: (d) => formatDateTime(d.submitted_at) },
-            { header: "Amount", cell: (d) => (d.amount ? formatUsdt(d.amount, { withSymbol: true }) : "—") },
+            { header: "Claimed", cell: (d) => (d.claimed_amount ? formatUsdt(d.claimed_amount, { withSymbol: true }) : "—") },
+            { header: "Credited", cell: (d) => (d.amount ? formatUsdt(d.amount, { withSymbol: true }) : "—") },
             { header: "Tx hash", cell: (d) => <span className="font-mono text-xs">{d.tx_hash.slice(0, 16)}…</span> },
             { header: "Status", cell: (d) => <StatusBadge status={d.status} /> }
           ]}

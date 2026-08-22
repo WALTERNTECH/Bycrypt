@@ -6,6 +6,9 @@ import { logAdminAction } from "@/lib/auditLog";
 
 const bodySchema = z.object({ accrued_return: z.number().min(0) });
 
+// Growth is uncapped (min 40%, no max) — the admin sets the actual
+// accrued amount directly, reflecting the real move of the coin the
+// investment is trading.
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Not authorized" }, { status: 401 });
@@ -17,14 +20,12 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const supabaseAdmin = createAdminClient();
   const { data: investment } = await supabaseAdmin
     .from("investments")
-    .select("amount, max_return_pct")
+    .select("id, status")
     .eq("id", params.id)
     .maybeSingle();
   if (!investment) return NextResponse.json({ error: "Investment not found" }, { status: 404 });
-
-  const cap = (parseFloat(String(investment.amount)) * parseFloat(String(investment.max_return_pct))) / 100;
-  if (parsed.data.accrued_return > cap) {
-    return NextResponse.json({ error: `Exceeds the ${investment.max_return_pct}% cap.` }, { status: 400 });
+  if (investment.status === "withdrawn") {
+    return NextResponse.json({ error: "This investment has already been cashed out." }, { status: 400 });
   }
 
   const { error: updateError } = await supabaseAdmin
