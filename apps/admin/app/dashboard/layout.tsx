@@ -23,9 +23,6 @@ export default async function DashboardLayout({ children }: { children: React.Re
   } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: aalData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-  if (aalData?.currentLevel !== "aal2") redirect("/login");
-
   const { data: adminRow } = await supabase
     .from("admin_users")
     .select("full_name, role")
