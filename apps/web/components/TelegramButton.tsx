@@ -1,9 +1,11 @@
 export function TelegramButton({
   url,
-  variant = "icon"
+  variant = "icon",
+  label = "Chat with Krypton Support"
 }: {
   url: string;
   variant?: "icon" | "full";
+  label?: string;
 }) {
   if (variant === "icon") {
     return (
@@ -28,7 +30,7 @@ export function TelegramButton({
       className="inline-flex items-center gap-2 rounded-lg bg-[#29A9EA] px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[#3fb4ee]"
     >
       <TelegramIcon className="h-4 w-4" />
-      Chat with Krypton Support
+      {label}
     </a>
   );
 }

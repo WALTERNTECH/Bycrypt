@@ -1,8 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/Badge";
-import { TradedSymbolBadge } from "@/components/TradedSymbolBadge";
+import { LiveInvestmentValue } from "@/components/LiveInvestmentValue";
 import { CashOutButton } from "@/components/CashOutButton";
-import { formatUsdt, formatDate, formatPct, daysRemaining } from "@/lib/format";
+import { formatUsdt, formatDate, daysRemaining } from "@/lib/format";
 
 export default async function InvestmentsPage() {
   const supabase = createClient();
@@ -35,24 +35,23 @@ export default async function InvestmentsPage() {
           const remaining = daysRemaining(inv.maturity_date);
           const principal = parseFloat(String(inv.amount));
           const accrued = parseFloat(String(inv.accrued_return));
-          const growthPct = principal > 0 ? (accrued / principal) * 100 : 0;
           const inProfit = accrued > 0 && inv.status !== "withdrawn";
           return (
             <div key={inv.id} className="rounded-xl border border-border/60 bg-panel p-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-text-primary">{tier?.name ?? "Investment"}</p>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {tier?.name ?? "Investment"}
+                    {inv.traded_symbol && <span className="ml-1.5 text-text-secondary">· {inv.traded_symbol.replace("USDT", "")}</span>}
+                  </p>
                   <p className="mt-0.5 text-xs text-text-secondary">
                     Started {formatDate(inv.start_date)} · Matures {formatDate(inv.maturity_date)}
                   </p>
                 </div>
-                <div className="flex flex-col items-end gap-1.5">
-                  <StatusBadge status={inv.status} />
-                  {inv.traded_symbol && <TradedSymbolBadge symbol={inv.traded_symbol} />}
-                </div>
+                <StatusBadge status={inv.status} />
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <div>
                   <p className="text-[10px] text-text-secondary">Principal</p>
                   <p className="mono-num mt-0.5 text-sm font-semibold text-text-primary">
@@ -60,14 +59,12 @@ export default async function InvestmentsPage() {
                   </p>
                 </div>
                 <div>
-                  <p className="text-[10px] text-text-secondary">Growth</p>
-                  <p className="mono-num mt-0.5 text-sm font-semibold text-positive">{formatPct(growthPct, { signed: true })}</p>
-                </div>
-                <div>
-                  <p className="text-[10px] text-text-secondary">Accrued return</p>
-                  <p className="mono-num mt-0.5 text-sm font-semibold text-positive">
-                    {formatUsdt(inv.accrued_return, { withSymbol: true })}
-                  </p>
+                  <p className="text-[10px] text-text-secondary">Live value</p>
+                  {inv.traded_symbol ? (
+                    <LiveInvestmentValue symbol={inv.traded_symbol} principal={principal} confirmedAccrued={accrued} />
+                  ) : (
+                    <p className="mono-num mt-0.5 text-sm font-semibold text-positive">{formatUsdt(accrued, { withSymbol: true })}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-[10px] text-text-secondary">

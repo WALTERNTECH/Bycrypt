@@ -24,7 +24,7 @@ export function DepositForm({
   telegramUrl: string;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | "generating" | 3 | 4>(1);
   const [amount, setAmount] = useState("");
   const [network, setNetwork] = useState<string>("TRC20");
   const [txHash, setTxHash] = useState("");
@@ -36,6 +36,14 @@ export function DepositForm({
   const pollCount = useRef(0);
 
   const addressNotReady = !depositAddress || depositAddress === PLACEHOLDER_ADDRESS;
+
+  // Brief "generating address" beat before revealing it — feels like a
+  // real provisioning step rather than an instant static reveal.
+  useEffect(() => {
+    if (step !== "generating") return;
+    const timer = setTimeout(() => setStep(3), 1300);
+    return () => clearTimeout(timer);
+  }, [step]);
 
   useEffect(() => {
     if (!result || result.status !== "pending_verification") return;
@@ -94,8 +102,13 @@ export function DepositForm({
     const rejected = result.status === "rejected";
     return (
       <div className="rounded-xl border border-border/60 bg-panel p-6 text-center">
+        {!confirmed && !rejected && (
+          <div className="mb-3 flex justify-center">
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+          </div>
+        )}
         <p className={`text-lg font-bold ${confirmed ? "text-positive" : rejected ? "text-negative" : "text-brand"}`}>
-          {confirmed ? "Deposit confirmed!" : rejected ? "Deposit could not be verified" : "Awaiting confirmation…"}
+          {confirmed ? "Deposit confirmed!" : rejected ? "Deposit could not be verified" : "Sent to Krypton Support for verification"}
         </p>
         <p className="mt-2 text-sm text-text-secondary">{result.message}</p>
         {confirmed ? (
@@ -113,11 +126,19 @@ export function DepositForm({
           >
             Try a different transaction hash
           </button>
-        ) : (
-          <div className="mt-4 flex justify-center">
-            <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand border-t-transparent" />
-          </div>
-        )}
+        ) : null}
+      </div>
+    );
+  }
+
+  if (step === "generating") {
+    return (
+      <div className="rounded-xl border border-border/60 bg-panel p-8 text-center">
+        <div className="flex justify-center">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+        </div>
+        <p className="mt-4 text-sm font-semibold text-text-primary">Generating your wallet deposit address…</p>
+        <p className="mt-1 text-xs text-text-secondary">One moment.</p>
       </div>
     );
   }
@@ -153,7 +174,7 @@ export function DepositForm({
       </div>
 
       {/* Step 2 — network */}
-      {step >= 2 && (
+      {(step === 2 || step === 3 || step === 4) && (
         <div className="rounded-xl border border-border/60 bg-panel p-4">
           <p className="text-sm font-semibold text-text-primary">2. Choose network</p>
           <p className="mt-1 text-xs text-text-secondary">Only send USDT on the network you select below.</p>
@@ -173,7 +194,7 @@ export function DepositForm({
             ))}
           </div>
           {step === 2 && (
-            <button onClick={() => setStep(3)} className="mt-3 text-sm font-semibold text-brand">
+            <button onClick={() => setStep("generating")} className="mt-3 text-sm font-semibold text-brand">
               Continue →
             </button>
           )}
@@ -181,7 +202,7 @@ export function DepositForm({
       )}
 
       {/* Step 3 — address */}
-      {step >= 3 && (
+      {(step === 3 || step === 4) && (
         <div className="rounded-xl border border-border/60 bg-panel p-4">
           <p className="text-sm font-semibold text-text-primary">3. Send USDT ({network})</p>
           <p className="mt-1 text-xs text-text-secondary">
@@ -192,8 +213,8 @@ export function DepositForm({
             <p className="text-xs font-semibold text-text-primary">Don't have USDT yet?</p>
             <p className="mt-1 text-xs leading-relaxed text-text-secondary">
               Buy USDT on an exchange like Binance or OKX first, withdraw it on the {network} network,
-              then send it to the address below. If you're not sure how, Krypton Support will walk you
-              through it on Telegram.
+              then deposit it into your Krypton wallet using the address below. Krypton Support can
+              walk you through both steps on Telegram if you're not sure how.
             </p>
             <div className="mt-2.5">
               <TelegramButton url={telegramUrl} variant="full" />
@@ -232,12 +253,12 @@ export function DepositForm({
       )}
 
       {/* Step 4 — tx hash + transaction key */}
-      {step >= 4 && (
+      {step === 4 && (
         <form onSubmit={handleSubmit} className="rounded-xl border border-border/60 bg-panel p-4">
-          <p className="text-sm font-semibold text-text-primary">4. Confirm your deposit</p>
+          <p className="text-sm font-semibold text-text-primary">4. Verify your deposit</p>
           <p className="mt-1 text-xs text-text-secondary">
-            We attempt on-chain verification automatically, and our team also confirms every
-            deposit manually — your wallet is credited as soon as either check clears.
+            We attempt on-chain verification automatically, and Krypton Support also confirms every
+            deposit by hand — your wallet is credited as soon as either check clears.
           </p>
           <div className="mt-3 space-y-3">
             <FormField label="Transaction hash">
@@ -261,8 +282,9 @@ export function DepositForm({
             </FormField>
           </div>
           {error && <p className="mt-2 text-sm text-negative">{error}</p>}
-          <button type="submit" disabled={loading} className={`${buttonClass} mt-4`}>
-            {loading ? "Verifying…" : "Submit for verification"}
+          <button type="submit" disabled={loading} className={`${buttonClass} mt-4 flex items-center justify-center gap-2`}>
+            {loading && <span className="h-4 w-4 animate-spin rounded-full border-2 border-base/40 border-t-base" />}
+            {loading ? "Verifying…" : "Verify Deposit"}
           </button>
         </form>
       )}

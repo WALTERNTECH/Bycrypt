@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { StatusBadge, KycStatusBadge } from "@/components/Badge";
 import { formatUsdt, formatDateTime } from "@/lib/format";
+import { AdjustWalletForm } from "./AdjustWalletForm";
 
 export default async function UserDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -52,6 +53,10 @@ export default async function UserDetailPage({ params }: { params: { id: string 
           </>
         )}
       </p>
+
+      <div className="mt-6">
+        <AdjustWalletForm userId={params.id} />
+      </div>
 
       <Section title="KYC submissions">
         <Table

@@ -7,7 +7,8 @@ import { verifyTransactionKey } from "@/lib/transactionKey";
 const bodySchema = z.object({
   tier_id: z.number().int().positive(),
   amount: z.number().positive(),
-  transaction_key: z.string().min(1)
+  transaction_key: z.string().min(1),
+  symbol: z.string().max(20).optional()
 });
 
 // Allocates wallet balance into a tiered investment. All the actual
@@ -38,11 +39,21 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Verify your identity before trading." }, { status: 403 });
   }
 
-  const { data: symbols } = await supabase
-    .from("market_symbols")
-    .select("symbol")
-    .eq("is_active", true);
-  const tradedSymbol = await pickTopGainer((symbols ?? []).map((s) => s.symbol));
+  let tradedSymbol = parsed.data.symbol?.toUpperCase() ?? null;
+  if (tradedSymbol) {
+    // Trust only a symbol we actually list and that's active.
+    const { data: match } = await supabase
+      .from("market_symbols")
+      .select("symbol")
+      .eq("symbol", tradedSymbol)
+      .eq("is_active", true)
+      .maybeSingle();
+    if (!match) tradedSymbol = null;
+  }
+  if (!tradedSymbol) {
+    const { data: symbols } = await supabase.from("market_symbols").select("symbol").eq("is_active", true);
+    tradedSymbol = await pickTopGainer((symbols ?? []).map((s) => s.symbol));
+  }
 
   const { data: investmentId, error } = await supabase.rpc("buy_investment", {
     p_tier_id: parsed.data.tier_id,
