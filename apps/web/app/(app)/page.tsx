@@ -26,7 +26,7 @@ export default async function HomePage() {
     <div className="px-4 pt-5 sm:px-6">
       <LiveBalanceCard walletBalance={walletBalance} investments={liveInvestments} />
 
-      <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="mt-4 grid grid-cols-3 gap-3">
         <Link
           href="/trade"
           className="rounded-lg bg-brand py-2.5 text-center text-sm font-bold text-base transition-colors hover:bg-brand-hover"
@@ -38,6 +38,12 @@ export default async function HomePage() {
           className="rounded-lg border border-border py-2.5 text-center text-sm font-bold text-text-primary transition-colors hover:bg-panel"
         >
           Deposit
+        </Link>
+        <Link
+          href="/withdraw"
+          className="rounded-lg border border-border py-2.5 text-center text-sm font-bold text-text-primary transition-colors hover:bg-panel"
+        >
+          Withdraw
         </Link>
       </div>
 
