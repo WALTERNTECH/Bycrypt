@@ -68,7 +68,7 @@ export function AdjustWalletForm({ userId }: { userId: string }) {
         <button
           type="submit"
           disabled={loading}
-          className="rounded-md bg-brand px-4 py-1.5 text-sm font-bold text-base hover:bg-brand-hover disabled:opacity-50"
+          className="rounded-md bg-brand px-4 py-1.5 text-sm font-bold text-ink hover:bg-brand-hover disabled:opacity-50"
         >
           {loading ? "…" : "Apply"}
         </button>

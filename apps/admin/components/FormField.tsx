@@ -20,7 +20,7 @@ export const inputClass =
   "w-full rounded-lg border border-border bg-panel-2 px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-secondary/60 outline-none transition-colors focus:border-brand";
 
 export const buttonClass =
-  "rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-base transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60";
+  "rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-ink transition-colors hover:bg-brand-hover disabled:cursor-not-allowed disabled:opacity-60";
 
 export const dangerButtonClass =
   "rounded-lg bg-negative/10 px-4 py-2.5 text-sm font-bold text-negative transition-colors hover:bg-negative/20 disabled:cursor-not-allowed disabled:opacity-60";

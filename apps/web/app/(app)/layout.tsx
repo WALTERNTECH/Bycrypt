@@ -21,7 +21,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-base">
-      <header className="sticky top-0 z-40 border-b border-border/60 bg-base/95 backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-border bg-base/95 backdrop-blur">
         <TopBar />
         <TickerStrip rows={symbols ?? []} />
       </header>

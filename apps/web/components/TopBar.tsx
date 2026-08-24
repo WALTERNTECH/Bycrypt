@@ -21,12 +21,12 @@ export async function TopBar() {
   const initial = (profile?.full_name || user?.email || "?").trim().charAt(0).toUpperCase();
 
   return (
-    <div className="flex h-14 items-center justify-between border-b border-border/60 px-4 sm:px-6">
-      <div className="flex items-center gap-3">
+    <div className="flex h-14 items-center justify-between px-4 sm:px-6">
+      <div className="flex items-center gap-2.5">
         <Link
           href="/account"
           aria-label="Account settings"
-          className="flex h-9 w-9 items-center justify-center rounded-full bg-brand text-sm font-extrabold text-base shadow-md shadow-brand/30 ring-1 ring-white/10 transition-transform hover:scale-105 active:scale-95"
+          className="flex h-9 w-9 items-center justify-center rounded-full border border-border-strong bg-gradient-to-b from-surface-3 to-surface-2 text-sm font-extrabold text-brand shadow-btn transition-all duration-150 hover:border-brand/50 active:translate-y-px active:shadow-none"
         >
           {initial}
         </Link>

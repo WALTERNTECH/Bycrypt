@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HomeIcon, MarketsIcon, TradeIcon, DepositIcon } from "./icons";
+import { HomeIcon, MarketsIcon, TradeIcon, PortfolioIcon, DepositIcon } from "./icons";
 
 const items = [
   { href: "/", label: "Home", icon: HomeIcon, match: (p: string) => p === "/" },
   { href: "/markets", label: "Markets", icon: MarketsIcon, match: (p: string) => p.startsWith("/markets") },
   { href: "/trade", label: "Trade", icon: TradeIcon, match: (p: string) => p.startsWith("/trade") },
+  { href: "/investments", label: "Positions", icon: PortfolioIcon, match: (p: string) => p.startsWith("/investments") },
   { href: "/deposit", label: "Deposit", icon: DepositIcon, match: (p: string) => p.startsWith("/deposit") }
 ];
 
@@ -15,7 +16,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-panel/95 backdrop-blur">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-lg">
       <div className="mx-auto flex max-w-lg items-stretch justify-around">
         {items.map((item) => {
           const active = item.match(pathname);
@@ -24,10 +25,19 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-1 flex-col items-center gap-1 py-2.5 text-[11px] font-medium transition-colors"
+              aria-current={active ? "page" : undefined}
+              className="relative flex flex-1 flex-col items-center gap-1 py-2.5 transition-colors"
             >
-              <Icon className={`h-5 w-5 ${active ? "text-brand" : "text-text-secondary"}`} />
-              <span className={active ? "text-brand" : "text-text-secondary"}>{item.label}</span>
+              {/* active top rail */}
+              <span
+                className={`absolute inset-x-4 top-0 h-0.5 rounded-full transition-opacity ${
+                  active ? "bg-brand opacity-100" : "opacity-0"
+                }`}
+              />
+              <Icon className={`h-[19px] w-[19px] ${active ? "text-brand" : "text-text-tertiary"}`} />
+              <span className={`text-[10px] font-bold ${active ? "text-brand" : "text-text-tertiary"}`}>
+                {item.label}
+              </span>
             </Link>
           );
         })}

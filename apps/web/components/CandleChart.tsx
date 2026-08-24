@@ -88,7 +88,7 @@ export function CandleChart({ symbol, interval }: { symbol: string; interval: In
   }, [symbol, interval]);
 
   return (
-    <div className="relative rounded-xl border border-border/60 bg-panel p-2">
+    <div className="relative rounded-2xl border border-border bg-surface shadow-card p-2">
       {loading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-text-secondary">
           Loading chart…

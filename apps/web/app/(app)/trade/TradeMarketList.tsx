@@ -16,14 +16,14 @@ export function TradeMarketList({
 
   return (
     <div className="space-y-4">
-      <div className="rounded-xl border border-border/60 bg-panel p-4">
+      <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
         <p className="text-xs font-medium text-text-secondary">Available to trade</p>
         <p className="mono-num mt-1 text-2xl font-extrabold text-text-primary">
           {formatUsdt(walletBalance, { withSymbol: true })}
         </p>
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-border/60 bg-panel">
+      <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
         {rows.map((row) => {
           const t = tickers[row.symbol];
           const up = (t?.priceChangePercent ?? 0) >= 0;
@@ -32,10 +32,10 @@ export function TradeMarketList({
             <Link
               key={row.symbol}
               href={`/trade/${row.symbol}`}
-              className="flex items-center justify-between border-t border-border/40 px-4 py-3 transition-colors first:border-t-0 hover:bg-panel-2"
+              className="flex items-center justify-between border-t border-border px-4 py-3 transition-colors first:border-t-0 hover:bg-surface-2"
             >
               <div className="flex items-center gap-3">
-                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-panel-2 text-xs font-bold text-brand">
+                <span className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-2 text-xs font-bold text-brand">
                   {row.display_name.slice(0, 1)}
                 </span>
                 <div>

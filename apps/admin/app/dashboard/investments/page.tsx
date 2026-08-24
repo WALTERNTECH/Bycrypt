@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/Badge";
 import { formatUsdt, formatDate } from "@/lib/format";
-import { AccrueForm } from "./AccrueForm";
+import { PositionValueForm } from "@/components/PositionValueForm";
 
 export default async function AdminInvestmentsPage() {
   const supabase = createClient();
@@ -31,7 +31,7 @@ export default async function AdminInvestmentsPage() {
               <th className="px-5 py-3 font-medium">Accrued</th>
               <th className="px-5 py-3 font-medium">Maturity</th>
               <th className="px-5 py-3 font-medium">Status</th>
-              <th className="px-5 py-3 font-medium">Update accrued</th>
+              <th className="px-5 py-3 font-medium">Position value</th>
             </tr>
           </thead>
           <tbody>
@@ -51,12 +51,19 @@ export default async function AdminInvestmentsPage() {
                   <StatusBadge status={inv.status} />
                 </td>
                 <td className="px-5 py-3">
-                  <AccrueForm
-                    investmentId={inv.id}
-                    principal={parseFloat(inv.amount)}
-                    minReturnPct={inv.investment_tiers?.min_return_pct ? parseFloat(inv.investment_tiers.min_return_pct) : null}
-                    currentAccrued={parseFloat(inv.accrued_return)}
-                  />
+                  {inv.status === "withdrawn" ? (
+                    <span className="text-xs text-text-tertiary">Closed</span>
+                  ) : (
+                    <PositionValueForm
+                      compact
+                      investmentId={inv.id}
+                      principal={parseFloat(inv.amount)}
+                      minReturnPct={
+                        inv.investment_tiers?.min_return_pct ? parseFloat(inv.investment_tiers.min_return_pct) : null
+                      }
+                      currentAccrued={parseFloat(inv.accrued_return)}
+                    />
+                  )}
                 </td>
               </tr>
             ))}

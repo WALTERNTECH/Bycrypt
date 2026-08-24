@@ -1,8 +1,9 @@
 import { createClient } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/Badge";
 import { LiveInvestmentValue } from "@/components/LiveInvestmentValue";
-import { CashOutButton } from "@/components/CashOutButton";
-import { formatUsdt, formatDate, daysRemaining } from "@/lib/format";
+import { ClosePositionButton } from "@/components/ClosePositionButton";
+import { ButtonLink } from "@/components/ui";
+import { formatUsdt, formatPct, formatDate, daysRemaining } from "@/lib/format";
 
 export default async function InvestmentsPage() {
   const supabase = createClient();
@@ -16,67 +17,105 @@ export default async function InvestmentsPage() {
     .eq("user_id", user!.id)
     .order("created_at", { ascending: false });
 
+  const rows = investments ?? [];
+
   return (
-    <div className="px-4 pt-5 sm:px-6">
-      <h1 className="text-lg font-bold text-text-primary">Your investments</h1>
-      <p className="mt-1 text-xs text-text-secondary">
-        7-day plans, minimum 40% return, uncapped upside. Cash out to your wallet any time you're
-        in profit.
+    <div className="px-4 pt-4 sm:px-6">
+      <h1 className="text-xl font-extrabold text-text-primary">Positions</h1>
+      <p className="mt-1 text-xs leading-relaxed text-text-secondary">
+        7-day plans, 40% minimum return, uncapped upside. Close a position at any time to move its
+        value back into your Krypton wallet — withdrawals are made from the wallet.
       </p>
 
       <div className="mt-4 grid gap-3">
-        {(investments ?? []).length === 0 && (
-          <div className="rounded-xl border border-border/60 bg-panel p-8 text-center text-xs text-text-secondary">
-            You don't have any investments yet. Make a deposit, then trade it into a plan.
+        {rows.length === 0 && (
+          <div className="rounded-2xl border border-border bg-surface p-8 text-center shadow-card">
+            <p className="text-sm font-bold text-text-primary">No positions yet</p>
+            <p className="mt-1.5 text-xs text-text-secondary">
+              Deposit USDT, then open a position from any market chart.
+            </p>
+            <div className="mt-4 flex justify-center">
+              <ButtonLink href="/trade" variant="primary" size="md">
+                Browse markets
+              </ButtonLink>
+            </div>
           </div>
         )}
-        {(investments ?? []).map((inv) => {
+
+        {rows.map((inv) => {
           const tier = inv.investment_tiers as any;
-          const remaining = daysRemaining(inv.maturity_date);
           const principal = parseFloat(String(inv.amount));
           const accrued = parseFloat(String(inv.accrued_return));
-          const inProfit = accrued > 0 && inv.status !== "withdrawn";
+          const settleValue = principal + accrued;
+          const settlePct = principal > 0 ? (accrued / principal) * 100 : 0;
+          const isOpen = inv.status !== "withdrawn";
+
           return (
-            <div key={inv.id} className="rounded-xl border border-border/60 bg-panel p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
+            <div key={inv.id} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
+              <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
                 <div>
-                  <p className="text-sm font-semibold text-text-primary">
+                  <p className="text-sm font-bold text-text-primary">
                     {tier?.name ?? "Investment"}
-                    {inv.traded_symbol && <span className="ml-1.5 text-text-secondary">· {inv.traded_symbol.replace("USDT", "")}</span>}
+                    {inv.traded_symbol && (
+                      <span className="ml-1.5 font-medium text-text-secondary">
+                        · {inv.traded_symbol.replace("USDT", "")}
+                      </span>
+                    )}
                   </p>
-                  <p className="mt-0.5 text-xs text-text-secondary">
-                    Started {formatDate(inv.start_date)} · Matures {formatDate(inv.maturity_date)}
+                  <p className="mt-0.5 text-[10px] text-text-tertiary">
+                    Opened {formatDate(inv.start_date)} · Matures {formatDate(inv.maturity_date)}
                   </p>
                 </div>
                 <StatusBadge status={inv.status} />
               </div>
 
-              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                <div>
-                  <p className="text-[10px] text-text-secondary">Principal</p>
-                  <p className="mono-num mt-0.5 text-sm font-semibold text-text-primary">
-                    {formatUsdt(inv.amount, { withSymbol: true })}
+              <div className="grid grid-cols-3 divide-x divide-border">
+                <div className="px-3 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">Staked</p>
+                  <p className="mono-num mt-1 text-sm font-bold text-text-primary">
+                    {formatUsdt(principal, { withSymbol: true })}
                   </p>
                 </div>
-                <div>
-                  <p className="text-[10px] text-text-secondary">Live value</p>
-                  {inv.traded_symbol ? (
+
+                <div className="px-3 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                    {isOpen ? "Live value" : "Final value"}
+                  </p>
+                  {isOpen && inv.traded_symbol ? (
                     <LiveInvestmentValue symbol={inv.traded_symbol} principal={principal} confirmedAccrued={accrued} />
                   ) : (
-                    <p className="mono-num mt-0.5 text-sm font-semibold text-positive">{formatUsdt(accrued, { withSymbol: true })}</p>
+                    <p className="mono-num mt-1 text-sm font-bold text-text-primary">
+                      {formatUsdt(settleValue, { withSymbol: true })}
+                    </p>
                   )}
                 </div>
-                <div>
-                  <p className="text-[10px] text-text-secondary">
-                    {inv.status === "active" ? "Days remaining" : "Status"}
+
+                <div className="px-3 py-3">
+                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                    {isOpen ? "Settles at" : "Return"}
                   </p>
-                  <p className="mono-num mt-0.5 text-sm font-semibold text-text-primary">
-                    {inv.status === "active" ? remaining : tier?.lockup_days ? `${tier.lockup_days}-day plan` : "—"}
+                  <p className="mono-num mt-1 text-sm font-bold text-text-primary">
+                    {formatUsdt(isOpen ? settleValue : accrued, { withSymbol: true })}
+                  </p>
+                  <p className={`mono-num text-[10px] font-bold ${accrued > 0 ? "text-positive" : "text-text-tertiary"}`}>
+                    {formatPct(settlePct, { signed: true })}
                   </p>
                 </div>
               </div>
 
-              {inProfit && <CashOutButton investmentId={inv.id} />}
+              {isOpen && (
+                <div className="border-t border-border p-3">
+                  <div className="mb-2 flex items-center justify-between text-[10px]">
+                    <span className="text-text-tertiary">
+                      {inv.status === "active" ? `${daysRemaining(inv.maturity_date)} remaining` : "Matured"}
+                    </span>
+                    <span className="text-text-tertiary">
+                      {tier?.min_return_pct ? `${parseFloat(tier.min_return_pct)}% floor · uncapped` : ""}
+                    </span>
+                  </div>
+                  <ClosePositionButton investmentId={inv.id} settleValue={settleValue} />
+                </div>
+              )}
             </div>
           );
         })}

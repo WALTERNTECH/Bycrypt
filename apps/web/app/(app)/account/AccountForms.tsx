@@ -8,7 +8,7 @@ import { isValidTransactionKey } from "@/lib/transactionKey";
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-border/60 bg-panel p-4">
+    <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
       <p className="text-sm font-semibold text-text-primary">{title}</p>
       <div className="mt-3">{children}</div>
     </div>

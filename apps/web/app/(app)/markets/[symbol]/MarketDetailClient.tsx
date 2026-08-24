@@ -27,13 +27,13 @@ export function MarketDetailClient({ symbol, displayName }: { symbol: string; di
           </div>
         </div>
 
-        <div className="flex gap-1 rounded-lg border border-border/60 bg-panel p-1">
+        <div className="flex gap-1 rounded-lg border border-border bg-surface shadow-card p-1">
           {SUPPORTED_INTERVALS.map((iv) => (
             <button
               key={iv}
               onClick={() => setInterval(iv)}
               className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-colors ${
-                interval === iv ? "bg-brand text-base" : "text-text-secondary hover:text-text-primary"
+                interval === iv ? "bg-brand text-ink" : "text-text-secondary hover:text-text-primary"
               }`}
             >
               {iv.toUpperCase()}
@@ -44,19 +44,19 @@ export function MarketDetailClient({ symbol, displayName }: { symbol: string; di
 
       {t && (
         <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <div className="rounded-lg border border-border/60 bg-panel p-3">
+          <div className="rounded-lg border border-border bg-surface shadow-card p-3">
             <p className="text-xs text-text-secondary">24h High</p>
             <p className="mono-num mt-1 text-sm font-semibold text-text-primary">
               {t.highPrice.toLocaleString("en-US", { maximumFractionDigits: 2 })}
             </p>
           </div>
-          <div className="rounded-lg border border-border/60 bg-panel p-3">
+          <div className="rounded-lg border border-border bg-surface shadow-card p-3">
             <p className="text-xs text-text-secondary">24h Low</p>
             <p className="mono-num mt-1 text-sm font-semibold text-text-primary">
               {t.lowPrice.toLocaleString("en-US", { maximumFractionDigits: 2 })}
             </p>
           </div>
-          <div className="col-span-2 rounded-lg border border-border/60 bg-panel p-3 sm:col-span-2">
+          <div className="col-span-2 rounded-lg border border-border bg-surface shadow-card p-3 sm:col-span-2">
             <p className="text-xs text-text-secondary">24h Volume</p>
             <p className="mono-num mt-1 text-sm font-semibold text-text-primary">
               {t.volume.toLocaleString("en-US", { maximumFractionDigits: 2 })} {symbol.replace("USDT", "")}

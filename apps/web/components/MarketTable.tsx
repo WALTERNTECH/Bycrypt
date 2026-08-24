@@ -20,8 +20,8 @@ export function MarketTable({ rows }: { rows: MarketSymbolRow[] }) {
   const { tickers, connected } = useLiveTickers(symbols);
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border/60 bg-panel">
-      <div className="flex items-center justify-between border-b border-border/60 px-4 py-3 sm:px-5">
+    <div className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3 sm:px-5">
         <p className="text-sm font-semibold text-text-primary">Crypto Markets</p>
         <span className="flex items-center gap-1.5 text-xs text-text-secondary">
           <span
@@ -49,11 +49,11 @@ export function MarketTable({ rows }: { rows: MarketSymbolRow[] }) {
             return (
               <tr
                 key={row.symbol}
-                className="border-t border-border/40 transition-colors hover:bg-panel-2"
+                className="border-t border-border transition-colors hover:bg-surface-2"
               >
                 <td className="px-4 py-3 sm:px-5">
                   <Link href={`/markets/${row.symbol}`} className="flex items-center gap-3">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-panel-2 text-xs font-bold text-brand">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-2 text-xs font-bold text-brand">
                       {row.display_name.slice(0, 1)}
                     </span>
                     <span>

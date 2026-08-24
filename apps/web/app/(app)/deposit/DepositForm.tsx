@@ -101,7 +101,7 @@ export function DepositForm({
     const confirmed = result.status === "confirmed";
     const rejected = result.status === "rejected";
     return (
-      <div className="rounded-xl border border-border/60 bg-panel p-6 text-center">
+      <div className="rounded-2xl border border-border bg-surface shadow-card p-6 text-center">
         {!confirmed && !rejected && (
           <div className="mb-3 flex justify-center">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
@@ -133,7 +133,7 @@ export function DepositForm({
 
   if (step === "generating") {
     return (
-      <div className="rounded-xl border border-border/60 bg-panel p-8 text-center">
+      <div className="rounded-2xl border border-border bg-surface shadow-card p-8 text-center">
         <div className="flex justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
         </div>
@@ -148,7 +148,7 @@ export function DepositForm({
   return (
     <div className="space-y-4">
       {/* Step 1 — amount */}
-      <div className="rounded-xl border border-border/60 bg-panel p-4">
+      <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
         <p className="text-sm font-semibold text-text-primary">1. How much tradable capital?</p>
         <p className="mt-1 text-xs text-text-secondary">The amount of USDT you plan to send. Minimum {minDeposit} USDT.</p>
         <div className="mt-3">
@@ -175,7 +175,7 @@ export function DepositForm({
 
       {/* Step 2 — network */}
       {(step === 2 || step === 3 || step === 4) && (
-        <div className="rounded-xl border border-border/60 bg-panel p-4">
+        <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
           <p className="text-sm font-semibold text-text-primary">2. Choose network</p>
           <p className="mt-1 text-xs text-text-secondary">Only send USDT on the network you select below.</p>
           <div className="mt-3 grid gap-2">
@@ -185,7 +185,7 @@ export function DepositForm({
                 disabled={!n.enabled}
                 onClick={() => setNetwork(n.value)}
                 className={`flex items-center justify-between rounded-lg border px-3.5 py-3 text-left transition-colors ${
-                  network === n.value ? "border-brand bg-brand/10" : "border-border/60"
+                  network === n.value ? "border-brand bg-brand/10" : "border-border"
                 } ${!n.enabled ? "cursor-not-allowed opacity-40" : "hover:border-border"}`}
               >
                 <span className="text-sm font-semibold text-text-primary">{n.label}</span>
@@ -203,13 +203,13 @@ export function DepositForm({
 
       {/* Step 3 — address */}
       {(step === 3 || step === 4) && (
-        <div className="rounded-xl border border-border/60 bg-panel p-4">
+        <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
           <p className="text-sm font-semibold text-text-primary">3. Send USDT ({network})</p>
           <p className="mt-1 text-xs text-text-secondary">
             Send only USDT on the {network} network to this address — other networks or assets cannot be recovered.
           </p>
 
-          <div className="mt-3 rounded-lg border border-border/60 bg-panel-2 px-3.5 py-3">
+          <div className="mt-3 rounded-lg border border-border bg-surface shadow-card-2 px-3.5 py-3">
             <p className="text-xs font-semibold text-text-primary">Don't have USDT yet?</p>
             <p className="mt-1 text-xs leading-relaxed text-text-secondary">
               Buy USDT on an exchange like Binance or OKX first, withdraw it on the {network} network,
@@ -227,7 +227,7 @@ export function DepositForm({
               disabled until an operator sets it in the admin dashboard.
             </p>
           ) : (
-            <div className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-panel-2 px-3 py-2.5">
+            <div className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2.5">
               <code className="flex-1 truncate text-sm text-text-primary">{depositAddress}</code>
               <button
                 onClick={async () => {
@@ -235,7 +235,7 @@ export function DepositForm({
                   setCopied(true);
                   setTimeout(() => setCopied(false), 1500);
                 }}
-                className="shrink-0 rounded-md bg-brand px-2.5 py-1 text-xs font-bold text-base hover:bg-brand-hover"
+                className="shrink-0 rounded-lg border border-[#C9990A] bg-gradient-to-b from-brand-hover to-brand px-3 py-1.5 text-xs font-bold text-ink shadow-btn-brand transition-all duration-150 hover:from-[#FFD84D] hover:to-[#F7C21A] active:translate-y-px active:shadow-none"
               >
                 {copied ? "Copied" : "Copy"}
               </button>
@@ -254,7 +254,7 @@ export function DepositForm({
 
       {/* Step 4 — tx hash + transaction key */}
       {step === 4 && (
-        <form onSubmit={handleSubmit} className="rounded-xl border border-border/60 bg-panel p-4">
+        <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-surface shadow-card p-4">
           <p className="text-sm font-semibold text-text-primary">4. Verify your deposit</p>
           <p className="mt-1 text-xs text-text-secondary">
             We attempt on-chain verification automatically, and Krypton Support also confirms every

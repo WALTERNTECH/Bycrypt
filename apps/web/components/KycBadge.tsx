@@ -1,19 +1,22 @@
 import Link from "next/link";
 import { ShieldCheckIcon, ClockIcon, AlertIcon, ShieldIcon } from "./icons";
 
-// Solid, high-contrast per-status styling — this is a real call-to-action
-// button, not a subtle label, so every state uses a filled background.
+// A real control in every state. "Verified" is a calm confirmation
+// chip; the states that need action carry a filled, pressable button
+// treatment so they read as the next step, not decoration.
 const STYLES: Record<string, string> = {
-  approved: "bg-positive text-base shadow-positive/25 ring-white/10",
-  pending: "bg-panel-2 text-brand shadow-none ring-brand/40",
-  rejected: "bg-negative text-white shadow-negative/25 ring-white/10",
-  unverified: "bg-brand text-base shadow-brand/30 ring-white/10"
+  approved: "border-positive/30 bg-positive/10 text-positive shadow-none",
+  pending: "border-brand/30 bg-brand/10 text-brand shadow-none",
+  rejected:
+    "border-[#C9384B] bg-gradient-to-b from-[#FF5D72] to-negative text-white shadow-btn-negative hover:from-[#FF7285] hover:to-[#F85068]",
+  unverified:
+    "border-[#C9990A] bg-gradient-to-b from-brand-hover to-brand text-ink shadow-btn-brand hover:from-[#FFD84D] hover:to-[#F7C21A]"
 };
 
 const LABELS: Record<string, string> = {
   approved: "Verified",
-  pending: "Pending",
-  rejected: "Resubmit KYC",
+  pending: "In review",
+  rejected: "Resubmit",
   unverified: "Verify ID"
 };
 
@@ -33,7 +36,7 @@ export function KycBadge({ status }: { status: string }) {
     <Link
       href="/kyc"
       aria-label="Identity verification status"
-      className={`flex h-9 items-center gap-1.5 rounded-full px-3.5 text-xs font-extrabold shadow-md ring-1 transition-transform hover:scale-105 active:scale-95 ${style}`}
+      className={`flex h-9 items-center gap-1.5 rounded-full border px-3.5 text-xs font-bold transition-all duration-150 active:translate-y-px active:shadow-none ${style}`}
     >
       <Icon className="h-3.5 w-3.5" />
       {label}

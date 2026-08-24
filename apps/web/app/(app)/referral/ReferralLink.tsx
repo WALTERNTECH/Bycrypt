@@ -7,9 +7,9 @@ export function ReferralLink({ code }: { code: string }) {
   const link = typeof window !== "undefined" ? `${window.location.origin}/signup?ref=${code}` : `/signup?ref=${code}`;
 
   return (
-    <div className="rounded-xl border border-border/60 bg-panel p-4">
+    <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
       <p className="text-xs font-semibold text-text-primary">Your referral link</p>
-      <div className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-panel-2 px-3 py-2.5">
+      <div className="mt-2 flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2.5">
         <code className="flex-1 truncate text-xs text-text-primary">{link}</code>
         <button
           onClick={async () => {
@@ -17,7 +17,7 @@ export function ReferralLink({ code }: { code: string }) {
             setCopied(true);
             setTimeout(() => setCopied(false), 1500);
           }}
-          className="shrink-0 rounded-md bg-brand px-2.5 py-1 text-xs font-bold text-base hover:bg-brand-hover"
+          className="shrink-0 rounded-lg border border-[#C9990A] bg-gradient-to-b from-brand-hover to-brand px-3 py-1.5 text-xs font-bold text-ink shadow-btn-brand transition-all duration-150 hover:from-[#FFD84D] hover:to-[#F7C21A] active:translate-y-px active:shadow-none"
         >
           {copied ? "Copied" : "Copy"}
         </button>

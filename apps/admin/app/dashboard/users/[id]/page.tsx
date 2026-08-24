@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { StatusBadge, KycStatusBadge } from "@/components/Badge";
 import { formatUsdt, formatDateTime } from "@/lib/format";
 import { AdjustWalletForm } from "./AdjustWalletForm";
+import { PositionValueForm } from "@/components/PositionValueForm";
 
 export default async function UserDetailPage({ params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -21,12 +22,16 @@ export default async function UserDetailPage({ params }: { params: { id: string 
     supabase.from("deposits").select("*").eq("user_id", params.id).order("submitted_at", { ascending: false }),
     supabase
       .from("investments")
-      .select("*, investment_tiers(name)")
+      .select("*, investment_tiers(name, min_return_pct)")
       .eq("user_id", params.id)
       .order("created_at", { ascending: false }),
     supabase.from("withdrawals").select("*").eq("user_id", params.id).order("requested_at", { ascending: false }),
     supabase.from("kyc_submissions").select("*").eq("user_id", params.id).order("submitted_at", { ascending: false })
   ]);
+
+  // Krypton runs one position at a time, so the newest non-withdrawn
+  // row is the position whose floating value support can still move.
+  const openPosition = (investments ?? []).find((i: any) => i.status !== "withdrawn");
 
   return (
     <div>
@@ -54,8 +59,31 @@ export default async function UserDetailPage({ params }: { params: { id: string 
         )}
       </p>
 
-      <div className="mt-6">
+      {/* Two separate money tools, kept visually apart on purpose:
+          the wallet is settled funds, the position is floating value. */}
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <AdjustWalletForm userId={params.id} />
+
+        {openPosition ? (
+          <PositionValueForm
+            investmentId={openPosition.id}
+            principal={parseFloat(String(openPosition.amount))}
+            currentAccrued={parseFloat(String(openPosition.accrued_return))}
+            minReturnPct={
+              (openPosition.investment_tiers as any)?.min_return_pct
+                ? parseFloat((openPosition.investment_tiers as any).min_return_pct)
+                : null
+            }
+          />
+        ) : (
+          <div className="rounded-xl border border-border/60 bg-panel p-4">
+            <p className="text-sm font-semibold text-text-primary">Update position value</p>
+            <p className="mt-1 text-xs text-text-secondary">
+              No open position for this user right now. Once they open one, its floating value can
+              be set here.
+            </p>
+          </div>
+        )}
       </div>
 
       <Section title="KYC submissions">

@@ -54,7 +54,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
             >
               {item.label}
               {item.href === "/dashboard/notifications" && !!unreadCount && (
-                <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-base">
+                <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-ink">
                   {unreadCount}
                 </span>
               )}

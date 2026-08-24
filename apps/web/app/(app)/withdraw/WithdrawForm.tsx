@@ -19,7 +19,7 @@ export function WithdrawForm({ walletBalance, telegramUrl }: { walletBalance: nu
 
   if (walletBalance <= 0) {
     return (
-      <div className="rounded-xl border border-border/60 bg-panel p-6 text-center text-xs text-text-secondary">
+      <div className="rounded-2xl border border-border bg-surface shadow-card p-6 text-center text-xs text-text-secondary">
         Your wallet balance is empty. Deposit funds or cash out a profitable investment first.
         <div className="mt-3">
           <Link href="/deposit" className="text-sm font-semibold text-brand">
@@ -71,7 +71,7 @@ export function WithdrawForm({ walletBalance, telegramUrl }: { walletBalance: nu
 
   if (success) {
     return (
-      <div className="rounded-xl border border-border/60 bg-panel p-6 text-center">
+      <div className="rounded-2xl border border-border bg-surface shadow-card p-6 text-center">
         <div className="mb-3 flex justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
         </div>
@@ -86,7 +86,7 @@ export function WithdrawForm({ walletBalance, telegramUrl }: { walletBalance: nu
 
   return (
     <div className="space-y-3">
-      <form onSubmit={handleSubmit} className="rounded-xl border border-border/60 bg-panel p-4 space-y-3">
+      <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-surface shadow-card p-4 space-y-3">
         <p className="text-xs text-text-secondary">
           Available: <span className="mono-num font-semibold text-text-primary">{formatUsdt(walletBalance, { withSymbol: true })}</span>
         </p>
@@ -129,7 +129,7 @@ export function WithdrawForm({ walletBalance, telegramUrl }: { walletBalance: nu
         </button>
       </form>
 
-      <div className="rounded-xl border border-border/60 bg-panel-2 px-3.5 py-3">
+      <div className="rounded-2xl border border-border bg-surface shadow-card-2 px-3.5 py-3">
         <p className="text-xs text-text-secondary">Not sure about the process, or your funds haven't arrived?</p>
         <div className="mt-2">
           <TelegramButton url={telegramUrl} variant="full" label="Guide me on my withdrawal" />

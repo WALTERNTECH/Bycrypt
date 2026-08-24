@@ -34,7 +34,7 @@ export default async function ReferralPage() {
 
   return (
     <div className="px-4 pt-5 sm:px-6">
-      <h1 className="text-lg font-bold text-text-primary">Refer & earn</h1>
+      <h1 className="text-xl font-extrabold text-text-primary">Refer & earn</h1>
       <p className="mt-1 text-xs text-text-secondary">
         Share your link. When someone signs up with it and deposits, you earn 10% of every deposit
         they make.
@@ -50,7 +50,7 @@ export default async function ReferralPage() {
       </div>
 
       {referralBalance > 0 && (
-        <div className="mt-4 rounded-xl border border-border/60 bg-panel p-4">
+        <div className="mt-4 rounded-2xl border border-border bg-surface shadow-card p-4">
           <p className="text-sm font-semibold text-text-primary">Withdraw your earnings</p>
           <p className="mt-1 text-xs text-text-secondary">
             Move your referral earnings into your wallet balance, then withdraw them to your TRC20
@@ -64,7 +64,7 @@ export default async function ReferralPage() {
 
       <div className="mt-6">
         <h2 className="text-sm font-semibold text-text-primary">Your referrals</h2>
-        <div className="mt-3 overflow-hidden rounded-xl border border-border/60 bg-panel">
+        <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
           {(referredUsers ?? []).length === 0 ? (
             <p className="px-4 py-6 text-center text-xs text-text-secondary">
               Nobody has signed up with your link yet.

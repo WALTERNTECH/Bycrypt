@@ -86,7 +86,7 @@ export function WithdrawalActions({ withdrawalId, status }: { withdrawalId: stri
           <button
             disabled={loading || !txHash}
             onClick={() => call("process", { tx_hash: txHash })}
-            className="rounded-md bg-brand px-2 py-1 text-xs font-bold text-base hover:bg-brand-hover"
+            className="rounded-md bg-brand px-2 py-1 text-xs font-bold text-ink hover:bg-brand-hover"
           >
             Confirm
           </button>

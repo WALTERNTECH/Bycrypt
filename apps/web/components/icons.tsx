@@ -111,3 +111,14 @@ export function SupportIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+export function PortfolioIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className={className}>
+      <rect x="3" y="7.5" width="18" height="12.5" rx="2.2" />
+      <path d="M8.5 7.5V6a2 2 0 0 1 2-2h3a2 2 0 0 1 2 2v1.5" strokeLinecap="round" />
+      <path d="M3 12.5h18" />
+      <path d="M12 11.6v1.8" strokeLinecap="round" />
+    </svg>
+  );
+}

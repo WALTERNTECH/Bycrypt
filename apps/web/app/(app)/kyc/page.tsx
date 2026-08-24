@@ -22,9 +22,9 @@ export default async function KycPage() {
 
   return (
     <div className="px-4 pt-5 sm:px-6">
-      <h1 className="text-lg font-bold text-text-primary">Identity verification</h1>
+      <h1 className="text-xl font-extrabold text-text-primary">Identity verification</h1>
       <p className="mt-1 text-xs text-text-secondary">
-        Required once before you can deposit or trade. Your documents are reviewed manually and
+        Required once before you can deposit or trade. Your documents are verified automatically and
         never shown to anyone but Krypton staff.
       </p>
 
@@ -35,7 +35,7 @@ export default async function KycPage() {
             <p className="mt-2 text-xs text-text-secondary">Deposits and trading are fully unlocked on your account.</p>
           </div>
         ) : status === "pending" ? (
-          <div className="rounded-xl border border-border/60 bg-panel p-6 text-center">
+          <div className="rounded-2xl border border-border bg-surface shadow-card p-6 text-center">
             <p className="text-sm font-bold text-text-primary">Under review</p>
             <p className="mt-2 text-xs text-text-secondary">
               We're checking your submission from {latest ? new Date(latest.submitted_at).toLocaleDateString() : "recently"}.

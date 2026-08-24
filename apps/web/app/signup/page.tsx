@@ -124,7 +124,7 @@ export default function SignupPage() {
           />
         </FormField>
 
-        <div className="rounded-lg border border-border/60 bg-panel-2 p-3.5">
+        <div className="rounded-lg border border-border bg-surface shadow-card-2 p-3.5">
           <p className="text-sm font-medium text-text-primary">Transaction key</p>
           <p className="mt-0.5 text-xs text-text-secondary">
             A separate key you'll enter to authorize every deposit and withdrawal — keep it safe,

@@ -53,7 +53,7 @@ export function KycForm({ defaultFullName }: { defaultFullName: string }) {
 
   if (submitted) {
     return (
-      <div className="rounded-xl border border-border/60 bg-panel p-6 text-center">
+      <div className="rounded-2xl border border-border bg-surface shadow-card p-6 text-center">
         <p className="text-sm font-bold text-brand">Submitted for review</p>
         <p className="mt-2 text-xs text-text-secondary">
           We'll notify you as soon as your identity is verified — usually a short wait.
@@ -64,7 +64,7 @@ export function KycForm({ defaultFullName }: { defaultFullName: string }) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="rounded-xl border border-border/60 bg-panel p-4 space-y-3">
+      <div className="rounded-2xl border border-border bg-surface shadow-card p-4 space-y-3">
         <p className="text-sm font-semibold text-text-primary">Your details</p>
         <FormField label="Full legal name">
           <input required className={inputClass} value={fullName} onChange={(e) => setFullName(e.target.value)} />
@@ -86,7 +86,7 @@ export function KycForm({ defaultFullName }: { defaultFullName: string }) {
         </FormField>
       </div>
 
-      <div className="rounded-xl border border-border/60 bg-panel p-4 space-y-3">
+      <div className="rounded-2xl border border-border bg-surface shadow-card p-4 space-y-3">
         <p className="text-sm font-semibold text-text-primary">Documents</p>
         <p className="text-xs text-text-secondary">Clear photos, all four corners visible. JPG, PNG, or WEBP, up to 8MB each.</p>
         <FileField label="ID — front" file={idFront} onChange={setIdFront} required />
@@ -124,7 +124,7 @@ function FileField({
         type="file"
         accept="image/jpeg,image/png,image/webp"
         onChange={(e) => onChange(e.target.files?.[0] ?? null)}
-        className="block w-full text-xs text-text-secondary file:mr-3 file:rounded-md file:border-0 file:bg-panel-2 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-text-primary hover:file:bg-border/40"
+        className="block w-full text-xs text-text-secondary file:mr-3 file:rounded-md file:border-0 file:bg-surface-2 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-text-primary hover:file:bg-border/40"
       />
       {file && <span className="mt-1 block text-xs text-positive">{file.name}</span>}
     </label>

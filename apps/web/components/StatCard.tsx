@@ -19,9 +19,9 @@ export function StatCard({
       : "text-text-primary";
 
   return (
-    <div className="rounded-xl border border-border/60 bg-panel p-4 sm:p-5">
-      <p className="text-xs font-medium uppercase tracking-wide text-text-secondary">{label}</p>
-      <p className={`mono-num mt-2 text-2xl font-bold ${valueColor}`}>{value}</p>
+    <div className="rounded-2xl border border-border bg-surface p-4 shadow-card sm:p-5">
+      <p className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">{label}</p>
+      <p className={`mono-num mt-2 text-2xl font-extrabold ${valueColor}`}>{value}</p>
       {sub ? <p className="mt-1 text-xs text-text-secondary">{sub}</p> : null}
     </div>
   );

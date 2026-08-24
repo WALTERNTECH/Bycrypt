@@ -84,7 +84,7 @@ export default async function AdminOverviewPage() {
       </div>
 
       <div className="mt-6 flex flex-wrap gap-3">
-        <Link href="/dashboard/kyc" className="rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-base hover:bg-brand-hover">
+        <Link href="/dashboard/kyc" className="rounded-lg bg-brand px-4 py-2.5 text-sm font-bold text-ink hover:bg-brand-hover">
           Review KYC queue
         </Link>
         <Link href="/dashboard/withdrawals" className="rounded-lg border border-border px-4 py-2.5 text-sm font-bold text-text-primary hover:bg-panel-2">
