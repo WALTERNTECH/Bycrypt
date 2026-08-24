@@ -1,8 +1,10 @@
+/* Google Fonts must be imported before Tailwind's layers — an @import
+   that appears after other rules is dropped by the CSS parser. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
 :root {
   color-scheme: dark;
@@ -10,17 +12,19 @@
 
 html,
 body {
-  background-color: #0b0e11;
-  color: #eaecee;
+  background-color: #0a0d12;
+  color: #edf0f3;
 }
 
 body {
   font-family: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 ::selection {
   background: #f0b90b;
-  color: #0b0e11;
+  color: #0a0d12;
 }
 
 /* thin, exchange-style scrollbars */
@@ -32,13 +36,55 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2b3139;
+  background: #252c37;
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #363c45;
+  background: #333c49;
 }
 
 .mono-num {
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+button:not(:disabled),
+a[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@keyframes krypton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.live-dot {
+  animation: krypton-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes krypton-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.rise-in {
+  animation: krypton-rise 0.28s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live-dot,
+  .rise-in {
+    animation: none;
+  }
 }
