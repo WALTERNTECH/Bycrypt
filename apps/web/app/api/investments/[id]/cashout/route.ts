@@ -4,15 +4,15 @@ import { createClient } from "@/lib/supabase/server";
 const REASON_MESSAGES: Record<string, string> = {
   not_authenticated: "Please log in again.",
   not_found: "Investment not found.",
-  already_withdrawn: "This investment has already been cashed out.",
-  not_in_profit: "This investment isn't in profit yet — nothing to cash out."
+  already_withdrawn: "This investment has already been cashed out."
 };
 
 // Moves an investment's current value (principal + accrued return) into
-// the wallet balance. Allowed any time the position is in profit — no
-// maturity-date requirement (per Krypton's "withdraw anytime you're in
-// profit" policy). This is an internal balance move, not an external
-// transfer, so it needs no admin approval.
+// the wallet balance. Closable at any time — Krypton runs one open
+// position at a time, so a user can close whatever's running (settling
+// at its current accrued return, even if that's still 0) to free up
+// their wallet and open a new position. Internal balance move, not an
+// external transfer, so it needs no admin approval.
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient();
   const {

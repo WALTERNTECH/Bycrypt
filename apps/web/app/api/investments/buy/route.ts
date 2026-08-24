@@ -67,7 +67,8 @@ export async function POST(req: NextRequest) {
       insufficient_balance: "Your wallet balance is too low for that amount.",
       invalid_tier: "That plan isn't available.",
       invalid_amount: "Enter a valid amount.",
-      not_authenticated: "Please log in again."
+      not_authenticated: "Please log in again.",
+      position_already_open: "You already have an open position — close it first, then open a new one."
     };
     const reason = Object.keys(messages).find((k) => error.message.includes(k));
     return NextResponse.json({ error: reason ? messages[reason] : "Could not complete that trade." }, { status: 400 });

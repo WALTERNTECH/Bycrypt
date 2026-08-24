@@ -9,9 +9,12 @@ const bodySchema = z.object({ amount: z.number().positive() });
 // Manual deposit reconciliation: an admin has checked the transaction
 // against a block explorer themselves and confirms the amount by hand.
 // This is deliberately the primary path, not a fallback — automatic
-// on-chain verification runs too, but isn't relied on alone. Works
-// regardless of the deposit's current status EXCEPT 'confirmed', to
-// guarantee a deposit is never credited twice.
+// on-chain verification runs too, but isn't relied on alone.
+//
+// confirm_deposit() does the status flip AND the wallet credit in one
+// atomic transaction — previously these were two separate calls, and a
+// drop between them could leave a deposit marked confirmed with the
+// wallet never credited (this happened for real once; fixed here).
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const admin = await requireAdmin();
   if (!admin) return NextResponse.json({ error: "Not authorized" }, { status: 401 });
@@ -21,35 +24,20 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   if (!parsed.success) return NextResponse.json({ error: "Enter a valid amount." }, { status: 400 });
 
   const supabaseAdmin = createAdminClient();
-  const { data: deposit } = await supabaseAdmin
-    .from("deposits")
-    .select("id, user_id, status")
-    .eq("id", params.id)
-    .maybeSingle();
-  if (!deposit) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (deposit.status === "confirmed") {
-    return NextResponse.json({ error: "This deposit is already confirmed." }, { status: 400 });
-  }
-
-  await supabaseAdmin
-    .from("deposits")
-    .update({ status: "confirmed", amount: parsed.data.amount, confirmed_at: new Date().toISOString() })
-    .eq("id", params.id);
-
-  // credit_wallet_balance() also pays out the referrer's 10% bonus, if any.
-  const { error: creditError } = await supabaseAdmin.rpc("credit_wallet_balance", {
-    p_user_id: deposit.user_id,
+  const { error } = await supabaseAdmin.rpc("confirm_deposit", {
+    p_deposit_id: params.id,
     p_amount: parsed.data.amount
   });
-  if (creditError) {
-    return NextResponse.json({ error: "Failed to credit wallet." }, { status: 500 });
-  }
 
-  await supabaseAdmin.from("notifications").insert({
-    user_id: deposit.user_id,
-    type: "deposit_confirmed",
-    message: `Your deposit of ${parsed.data.amount} USDT was confirmed by our team and added to your wallet balance.`
-  });
+  if (error) {
+    const messages: Record<string, string> = {
+      deposit_not_found: "Deposit not found.",
+      already_confirmed: "This deposit is already confirmed.",
+      invalid_amount: "Enter a valid amount."
+    };
+    const reason = Object.keys(messages).find((k) => error.message.includes(k));
+    return NextResponse.json({ error: reason ? messages[reason] : "Failed to credit wallet." }, { status: 400 });
+  }
 
   await logAdminAction(admin.id, "manually_credit_deposit", "deposit", params.id, { amount: parsed.data.amount });
 

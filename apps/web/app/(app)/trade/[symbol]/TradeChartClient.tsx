@@ -13,10 +13,12 @@ interface OpenPosition {
   id: string;
   amount: number;
   accrued: number;
+  symbol: string;
 }
 
 interface OrderTicket {
   side: "BUY" | "SELL";
+  symbol: string;
   amount: number;
   time: string;
 }
@@ -53,8 +55,9 @@ export function TradeChartClient({
 
   const parsedAmount = parseFloat(amount);
   const amountValid = !Number.isNaN(parsedAmount) && parsedAmount >= minAmount && parsedAmount <= walletBalance;
+  const positionHere = openPosition && openPosition.symbol === symbol ? openPosition : null;
+  const positionElsewhere = openPosition && openPosition.symbol !== symbol ? openPosition : null;
   const sellValue = openPosition ? openPosition.amount + openPosition.accrued : 0;
-  const canSell = !!openPosition && openPosition.accrued > 0;
 
   async function handleBuy(e: React.FormEvent) {
     e.preventDefault();
@@ -84,7 +87,7 @@ export function TradeChartClient({
         setError(data.error ?? "Order could not be placed.");
         return;
       }
-      setTicket({ side: "BUY", amount: parsedAmount, time: new Date().toLocaleString() });
+      setTicket({ side: "BUY", symbol, amount: parsedAmount, time: new Date().toLocaleString() });
       setPanel("none");
       router.refresh();
     } finally {
@@ -92,18 +95,17 @@ export function TradeChartClient({
     }
   }
 
-  async function handleSell() {
-    if (!openPosition) return;
+  async function handleClosePosition(position: OpenPosition) {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch(`/api/investments/${openPosition.id}/cashout`, { method: "POST" });
+      const res = await fetch(`/api/investments/${position.id}/cashout`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Order could not be placed.");
         return;
       }
-      setTicket({ side: "SELL", amount: sellValue, time: new Date().toLocaleString() });
+      setTicket({ side: "SELL", symbol: position.symbol, amount: position.amount + position.accrued, time: new Date().toLocaleString() });
       setPanel("none");
       router.refresh();
     } finally {
@@ -113,10 +115,10 @@ export function TradeChartClient({
 
   if (ticket) {
     return (
-      <div className="rounded-xl border border-border/60 bg-panel p-6 text-center">
+      <div className="rounded-2xl border border-border bg-panel p-6 text-center shadow-lg shadow-black/20">
         <div
           className={`mx-auto flex h-12 w-12 items-center justify-center rounded-full ${
-            ticket.side === "BUY" ? "bg-positive/10" : "bg-negative/10"
+            ticket.side === "BUY" ? "bg-positive/15" : "bg-negative/15"
           }`}
         >
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className={`h-6 w-6 ${ticket.side === "BUY" ? "text-positive" : "text-negative"}`}>
@@ -124,18 +126,18 @@ export function TradeChartClient({
           </svg>
         </div>
         <p className="mt-3 text-lg font-bold text-text-primary">Order placed</p>
-        <div className="mt-4 divide-y divide-border/40 rounded-lg border border-border/60 text-left text-xs">
-          <Row label="Symbol" value={symbol.replace("USDT", "/USDT")} />
+        <div className="mt-4 divide-y divide-border/60 rounded-xl border border-border text-left text-xs">
+          <Row label="Symbol" value={ticket.symbol.replace("USDT", "/USDT")} />
           <Row label="Side" value={ticket.side} valueClass={ticket.side === "BUY" ? "text-positive" : "text-negative"} />
           <Row label="Amount" value={formatUsdt(ticket.amount, { withSymbol: true })} />
           <Row label="Status" value="Filled" valueClass="text-positive" />
           <Row label="Time" value={ticket.time} />
         </div>
         <div className="mt-5 flex justify-center gap-3">
-          <Link href="/investments" className="text-sm font-semibold text-brand">
-            View investments →
+          <Link href="/investments" className="rounded-lg bg-brand px-4 py-2 text-sm font-bold text-base transition-colors hover:bg-brand-hover">
+            View investments
           </Link>
-          <button onClick={() => setTicket(null)} className="text-sm font-semibold text-text-secondary">
+          <button onClick={() => setTicket(null)} className="rounded-lg border border-border px-4 py-2 text-sm font-semibold text-text-secondary hover:bg-panel-2">
             Done
           </button>
         </div>
@@ -163,7 +165,7 @@ export function TradeChartClient({
             </span>
           </div>
         </div>
-        <div className="flex gap-1 rounded-lg border border-border/60 bg-panel p-1">
+        <div className="flex gap-1 rounded-lg border border-border bg-panel p-1">
           {SUPPORTED_INTERVALS.map((iv) => (
             <button
               key={iv}
@@ -182,19 +184,43 @@ export function TradeChartClient({
         <CandleChart symbol={symbol} interval={interval} />
       </div>
 
+      {/* A position open on a different coin blocks buying here until closed */}
+      {positionElsewhere && panel === "none" && (
+        <div className="mt-3 rounded-xl border border-brand/40 bg-brand/[0.08] p-4">
+          <p className="text-sm font-bold text-brand">
+            Open position: {positionElsewhere.symbol.replace("USDT", "")}
+          </p>
+          <p className="mt-1 text-xs text-text-secondary">
+            Krypton runs one position at a time. Close your {positionElsewhere.symbol.replace("USDT", "")} position (worth{" "}
+            <span className="mono-num font-semibold text-text-primary">{formatUsdt(sellValue, { withSymbol: true })}</span>) to free up your
+            wallet balance and trade {symbol.replace("USDT", "")} instead.
+          </p>
+          <button
+            onClick={() => handleClosePosition(positionElsewhere)}
+            disabled={loading}
+            className="mt-3 rounded-lg bg-negative px-4 py-2 text-sm font-bold text-base transition-colors hover:brightness-110 disabled:opacity-60"
+          >
+            {loading ? "Closing…" : `Close ${positionElsewhere.symbol.replace("USDT", "")} position`}
+          </button>
+          {error && <p className="mt-2 text-sm text-negative">{error}</p>}
+        </div>
+      )}
+
       {/* Order controls — docked right under the chart, MT5-style */}
-      <div className="mt-3 rounded-xl border border-border/60 bg-panel p-4">
+      <div className="mt-3 rounded-xl border border-border bg-panel p-4">
         {panel === "none" && (
           <div className="grid grid-cols-2 gap-3">
             <button
-              onClick={() => setPanel("buy")}
-              className="rounded-lg bg-positive py-3 text-sm font-bold text-base transition-colors hover:brightness-110"
+              onClick={() => !positionElsewhere && setPanel("buy")}
+              disabled={!!positionElsewhere}
+              title={positionElsewhere ? "Close your open position first" : undefined}
+              className="rounded-lg bg-positive py-3 text-sm font-bold text-base transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-30"
             >
               Buy
             </button>
             <button
-              onClick={() => canSell && setPanel("sell")}
-              disabled={!canSell}
+              onClick={() => positionHere && setPanel("sell")}
+              disabled={!positionHere}
               className="rounded-lg bg-negative py-3 text-sm font-bold text-base transition-colors hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-30"
             >
               Sell
@@ -247,7 +273,7 @@ export function TradeChartClient({
           </form>
         )}
 
-        {panel === "sell" && openPosition && (
+        {panel === "sell" && positionHere && (
           <div className="space-y-3">
             <p className="text-sm font-bold text-negative">Sell {symbol.replace("USDT", "")}</p>
             <p className="text-xs text-text-secondary">
@@ -258,7 +284,7 @@ export function TradeChartClient({
             {error && <p className="text-sm text-negative">{error}</p>}
             <div className="flex gap-2">
               <button
-                onClick={handleSell}
+                onClick={() => handleClosePosition(positionHere)}
                 disabled={loading}
                 className="flex-1 rounded-lg bg-negative py-2.5 text-sm font-bold text-base transition-colors hover:brightness-110 disabled:opacity-60"
               >

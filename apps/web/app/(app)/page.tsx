@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { CoinGrid } from "@/components/CoinGrid";
 import { CoinSuggestion } from "@/components/CoinSuggestion";
 import { LiveBalanceCard } from "@/components/LiveBalanceCard";
+import { TradeIcon, DepositIcon, WithdrawIcon } from "@/components/icons";
 
 export default async function HomePage() {
   const supabase = createClient();
@@ -29,21 +30,24 @@ export default async function HomePage() {
       <div className="mt-4 grid grid-cols-3 gap-3">
         <Link
           href="/trade"
-          className="rounded-lg bg-brand py-2.5 text-center text-sm font-bold text-base transition-colors hover:bg-brand-hover"
+          className="flex flex-col items-center gap-1.5 rounded-xl bg-brand py-3 text-center shadow-md shadow-brand/25 ring-1 ring-white/10 transition-transform hover:scale-[1.02] active:scale-[0.98]"
         >
-          Trade
+          <TradeIcon className="h-5 w-5 text-base" />
+          <span className="text-sm font-bold text-base">Trade</span>
         </Link>
         <Link
           href="/deposit"
-          className="rounded-lg border border-border py-2.5 text-center text-sm font-bold text-text-primary transition-colors hover:bg-panel"
+          className="flex flex-col items-center gap-1.5 rounded-xl border border-positive/40 bg-positive/[0.08] py-3 text-center transition-colors hover:bg-positive/[0.14]"
         >
-          Deposit
+          <DepositIcon className="h-5 w-5 text-positive" />
+          <span className="text-sm font-bold text-positive">Deposit</span>
         </Link>
         <Link
           href="/withdraw"
-          className="rounded-lg border border-border py-2.5 text-center text-sm font-bold text-text-primary transition-colors hover:bg-panel"
+          className="flex flex-col items-center gap-1.5 rounded-xl border border-negative/40 bg-negative/[0.08] py-3 text-center transition-colors hover:bg-negative/[0.14]"
         >
-          Withdraw
+          <WithdrawIcon className="h-5 w-5 text-negative" />
+          <span className="text-sm font-bold text-negative">Withdraw</span>
         </Link>
       </div>
 

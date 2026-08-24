@@ -14,11 +14,14 @@ export default async function TradeSymbolPage({ params }: { params: { symbol: st
     supabase.from("market_symbols").select("symbol, display_name").eq("symbol", symbol).eq("is_active", true).maybeSingle(),
     supabase.from("profiles").select("kyc_status, wallet_balance").eq("id", user!.id).single(),
     supabase.from("investment_tiers").select("id, lockup_days, min_return_pct, max_return_pct").eq("is_active", true).limit(1).maybeSingle(),
+    // The user's single most recent open position, on ANY coin — not
+    // just this one. Krypton runs one position at a time, so this lets
+    // the chart page for a newly-suggested coin offer to close whatever
+    // is currently open (on a different coin) before buying this one.
     supabase
       .from("investments")
-      .select("id, amount, accrued_return")
+      .select("id, amount, accrued_return, traded_symbol")
       .eq("user_id", user!.id)
-      .eq("traded_symbol", symbol)
       .in("status", ["active", "matured"])
       .order("created_at", { ascending: false })
       .limit(1)
@@ -40,7 +43,12 @@ export default async function TradeSymbolPage({ params }: { params: { symbol: st
           minAmount={parseFloat(config?.value ?? "10")}
           openPosition={
             openPosition
-              ? { id: openPosition.id, amount: parseFloat(String(openPosition.amount)), accrued: parseFloat(String(openPosition.accrued_return)) }
+              ? {
+                  id: openPosition.id,
+                  amount: parseFloat(String(openPosition.amount)),
+                  accrued: parseFloat(String(openPosition.accrued_return)),
+                  symbol: openPosition.traded_symbol
+                }
               : null
           }
         />

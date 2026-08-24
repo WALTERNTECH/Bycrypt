@@ -65,20 +65,17 @@ export async function runDepositVerification(depositId: string): Promise<Deposit
   const result = await verifyTrc20Deposit(deposit.tx_hash, receivingAddress, USDT_TRC20_CONTRACT_MAINNET);
 
   if (result.ok) {
-    await admin
-      .from("deposits")
-      .update({ status: "confirmed", amount: result.amount, confirmed_at: new Date().toISOString() })
-      .eq("id", depositId);
-
-    // Atomic increment — safe even if this runs concurrently with a
-    // manual admin reverify.
-    await admin.rpc("credit_wallet_balance", { p_user_id: deposit.user_id, p_amount: result.amount });
-
-    await admin.from("notifications").insert({
-      user_id: deposit.user_id,
-      type: "deposit_confirmed",
-      message: `Your deposit of ${result.amount} USDT was confirmed and added to your wallet balance.`
+    // Single atomic call — status flip + wallet credit + referral bonus
+    // all happen in one transaction (confirm_deposit), so a mid-flight
+    // failure can never leave a deposit "confirmed" with the wallet
+    // never actually credited.
+    const { error: confirmError } = await admin.rpc("confirm_deposit", {
+      p_deposit_id: depositId,
+      p_amount: result.amount
     });
+    if (confirmError) {
+      return { status: "pending_verification", message: "Verified on-chain — crediting your wallet now, check back shortly." };
+    }
 
     return { status: "confirmed", message: `Deposit of ${result.amount} USDT confirmed and added to your wallet.` };
   }

@@ -1,3 +1,5 @@
+import { SupportIcon } from "./icons";
+
 export function TelegramButton({
   url,
   variant = "icon",
@@ -15,9 +17,9 @@ export function TelegramButton({
         rel="noopener noreferrer"
         title="Chat with Krypton Support on Telegram"
         aria-label="Krypton Support on Telegram"
-        className="flex h-9 w-9 items-center justify-center rounded-lg text-[#29A9EA] transition-colors hover:bg-panel"
+        className="flex h-9 w-9 items-center justify-center rounded-full bg-[#229ED9] text-white shadow-md shadow-[#229ED9]/30 ring-1 ring-white/10 transition-transform hover:scale-105 active:scale-95"
       >
-        <TelegramIcon className="h-5 w-5" />
+        <SupportIcon className="h-[18px] w-[18px]" />
       </a>
     );
   }
