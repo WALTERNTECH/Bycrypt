@@ -35,19 +35,16 @@ body {
 
 /* iOS zooms the viewport whenever a focused field is under 16px and does
    not zoom back out afterwards, leaving the app scaled and panned. Every
-   text-entry control is therefore pinned to 16px on touch-capable
-   screens; the visual size is restored on pointer devices. */
-input,
-select,
-textarea {
-  font-size: 16px;
-}
-
-@media (min-width: 768px) {
-  input,
+   text-entry control is therefore pinned to 16px at phone widths.
+   !important is deliberate: Tailwind's text-sm is a class (0-1-0) and
+   outranks any element selector on specificity, so without it the
+   utility silently wins and the zoom comes back. Above 768px the rule
+   doesn't exist at all, so the designed 14px applies normally. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]),
   select,
   textarea {
-    font-size: 14px;
+    font-size: 16px !important;
   }
 }
 
