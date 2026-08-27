@@ -14,6 +14,9 @@ export interface UserRow {
   status: string;
   kyc_status: string;
   wallet_balance: number;
+  position_value: number;
+  position_symbol: string | null;
+  total_balance: number;
   created_at: string;
   deposit_count: number;
   deposit_total: number;
@@ -21,12 +24,12 @@ export interface UserRow {
   last_deposit_amount: number | null;
 }
 
-type SortKey = "newest" | "oldest" | "wallet" | "deposits" | "name";
+type SortKey = "newest" | "oldest" | "balance" | "deposits" | "name";
 
 const SORTS: { key: SortKey; label: string }[] = [
   { key: "newest", label: "Newest signup" },
   { key: "oldest", label: "Oldest signup" },
-  { key: "wallet", label: "Wallet ↓" },
+  { key: "balance", label: "Balance ↓" },
   { key: "deposits", label: "Deposited ↓" },
   { key: "name", label: "Name A–Z" }
 ];
@@ -55,8 +58,8 @@ export function UsersTable({ users }: { users: UserRow[] }) {
       switch (sort) {
         case "oldest":
           return +new Date(a.created_at) - +new Date(b.created_at);
-        case "wallet":
-          return b.wallet_balance - a.wallet_balance;
+        case "balance":
+          return b.total_balance - a.total_balance;
         case "deposits":
           return b.deposit_total - a.deposit_total;
         case "name":
@@ -113,6 +116,8 @@ export function UsersTable({ users }: { users: UserRow[] }) {
               <th className="px-4 py-3 font-medium">User</th>
               <th className="px-4 py-3 font-medium">Signed up</th>
               <th className="px-4 py-3 font-medium">Wallet</th>
+              <th className="px-4 py-3 font-medium">In position</th>
+              <th className="px-4 py-3 font-medium">Total</th>
               <th className="px-4 py-3 font-medium">Deposited</th>
               <th className="px-4 py-3 font-medium">Last deposit</th>
               <th className="px-4 py-3 font-medium">KYC</th>
@@ -134,6 +139,25 @@ export function UsersTable({ users }: { users: UserRow[] }) {
                 </td>
                 <td className="px-4 py-3">
                   <WalletCell userId={u.id} balance={u.wallet_balance} name={u.full_name || u.email} />
+                </td>
+                <td className="whitespace-nowrap px-4 py-3">
+                  {u.position_value > 0 ? (
+                    <>
+                      <span className="mono-num font-semibold text-brand">
+                        {formatUsdt(u.position_value, { withSymbol: true })}
+                      </span>
+                      <div className="text-xs text-text-tertiary">
+                        {u.position_symbol?.replace("USDT", "") ?? "open"}
+                      </div>
+                    </>
+                  ) : (
+                    <span className="text-text-tertiary">—</span>
+                  )}
+                </td>
+                <td className="whitespace-nowrap px-4 py-3">
+                  <span className="mono-num font-bold text-text-primary">
+                    {formatUsdt(u.total_balance, { withSymbol: true })}
+                  </span>
                 </td>
                 <td className="whitespace-nowrap px-4 py-3">
                   <span className="mono-num font-semibold text-text-primary">
@@ -165,7 +189,7 @@ export function UsersTable({ users }: { users: UserRow[] }) {
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-text-secondary">
+                <td colSpan={9} className="px-4 py-8 text-center text-text-secondary">
                   No users match that filter.
                 </td>
               </tr>
