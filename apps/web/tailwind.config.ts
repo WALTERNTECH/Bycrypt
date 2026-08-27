@@ -36,7 +36,17 @@ const config: Config = {
         "text-secondary": "#8B95A5",
         "text-tertiary": "#5D6673",
         // text that sits on top of a bright fill (gold/green/red)
-        ink: "#0A0D12"
+        ink: "#0A0D12",
+        // Light header surface — the app chrome is deliberately white
+        // while the trading body stays dark, so these need their own
+        // scale rather than borrowing the dark one.
+        header: "#FFFFFF",
+        "header-2": "#F4F5F7",
+        "header-3": "#E9EBF0",
+        "header-border": "#E1E4EA",
+        "header-text": "#12161C",
+        "header-muted": "#6B7480",
+        "header-dark": "#1E2329"
       },
       fontFamily: {
         sans: ["Inter", "-apple-system", "Segoe UI", "Roboto", "sans-serif"]

@@ -1,71 +1,73 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { StatusBadge, KycStatusBadge } from "@/components/Badge";
-import { formatDate, formatUsdt } from "@/lib/format";
+import { UsersTable, type UserRow } from "./UsersTable";
+
+export const dynamic = "force-dynamic";
 
 export default async function AdminUsersPage() {
   const supabase = createClient();
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, full_name, phone, status, kyc_status, wallet_balance, created_at")
-    .order("created_at", { ascending: false });
+
+  const [{ data: profiles }, { data: deposits }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("id, full_name, phone, status, kyc_status, wallet_balance, created_at")
+      .order("created_at", { ascending: false }),
+    // Confirmed deposits only — a pending row isn't money the user has.
+    supabase
+      .from("deposits")
+      .select("user_id, amount, confirmed_at")
+      .eq("status", "confirmed")
+      .order("confirmed_at", { ascending: false })
+  ]);
 
   // Email lives in auth.users, not exposed via PostgREST — fetch via the
   // admin API and merge in.
   const admin = createAdminClient();
   const { data: authUsers } = await admin.auth.admin.listUsers({ perPage: 1000 });
   const emailById = new Map(authUsers?.users.map((u) => [u.id, u.email]) ?? []);
-  const users = (profiles ?? []).map((p) => ({ ...p, email: emailById.get(p.id) ?? "—" }));
+
+  // Roll deposits up per user. The list is already newest-first, so the
+  // first row seen for a user is their most recent deposit.
+  const agg = new Map<string, { count: number; total: number; lastAt: string | null; lastAmount: number | null }>();
+  for (const d of deposits ?? []) {
+    const amount = parseFloat(String(d.amount ?? 0));
+    const cur = agg.get(d.user_id) ?? { count: 0, total: 0, lastAt: null, lastAmount: null };
+    cur.count += 1;
+    cur.total += amount;
+    if (cur.lastAt === null) {
+      cur.lastAt = d.confirmed_at;
+      cur.lastAmount = amount;
+    }
+    agg.set(d.user_id, cur);
+  }
+
+  const users: UserRow[] = (profiles ?? []).map((p) => {
+    const a = agg.get(p.id);
+    return {
+      id: p.id,
+      full_name: p.full_name,
+      phone: p.phone,
+      email: emailById.get(p.id) ?? "—",
+      status: p.status,
+      kyc_status: p.kyc_status,
+      wallet_balance: parseFloat(String(p.wallet_balance ?? 0)),
+      created_at: p.created_at,
+      deposit_count: a?.count ?? 0,
+      deposit_total: a?.total ?? 0,
+      last_deposit_at: a?.lastAt ?? null,
+      last_deposit_amount: a?.lastAmount ?? null
+    };
+  });
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-text-primary">User Directory</h1>
-      <p className="mt-1 text-sm text-text-secondary">Every registered depositor, for signup and deposit reconciliation.</p>
+      <p className="mt-1 text-sm text-text-secondary">
+        Newest signups first. Search, filter and sort the list, see what each user has deposited and
+        when, and correct any wallet balance inline.
+      </p>
 
-      <div className="mt-6 overflow-x-auto rounded-xl border border-border/60 bg-panel">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-xs uppercase tracking-wide text-text-secondary">
-              <th className="px-5 py-3 font-medium">Name</th>
-              <th className="px-5 py-3 font-medium">Email</th>
-              <th className="px-5 py-3 font-medium">Phone</th>
-              <th className="px-5 py-3 font-medium">Wallet</th>
-              <th className="px-5 py-3 font-medium">KYC</th>
-              <th className="px-5 py-3 font-medium">Signed up</th>
-              <th className="px-5 py-3 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map((u) => (
-              <tr key={u.id} className="border-t border-border/40 hover:bg-panel-2">
-                <td className="px-5 py-3">
-                  <Link href={`/dashboard/users/${u.id}`} className="font-semibold text-text-primary hover:text-brand">
-                    {u.full_name || "—"}
-                  </Link>
-                </td>
-                <td className="px-5 py-3 text-text-secondary">{u.email}</td>
-                <td className="px-5 py-3 text-text-secondary">{u.phone || "—"}</td>
-                <td className="mono-num px-5 py-3 text-text-primary">{formatUsdt(u.wallet_balance ?? 0, { withSymbol: true })}</td>
-                <td className="px-5 py-3">
-                  <KycStatusBadge status={u.kyc_status} />
-                </td>
-                <td className="px-5 py-3 text-text-secondary">{formatDate(u.created_at)}</td>
-                <td className="px-5 py-3">
-                  <StatusBadge status={u.status} />
-                </td>
-              </tr>
-            ))}
-            {users.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-5 py-8 text-center text-text-secondary">
-                  No users yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      <UsersTable users={users} />
     </div>
   );
 }

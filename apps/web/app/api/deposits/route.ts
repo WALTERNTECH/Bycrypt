@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isValidTxHash, normalizeTxHash } from "@/lib/tron-address";
 import { runDepositVerification } from "@/lib/depositVerification";
 import { verifyTransactionKey } from "@/lib/transactionKey";
+import { sendAdminAlert } from "@/lib/adminEmail";
 
 const bodySchema = z.object({
   tx_hash: z.string().min(10),
@@ -94,6 +95,18 @@ export async function POST(req: NextRequest) {
       }))
     );
   }
+
+  // Email the same alert so support sees it without watching the
+  // dashboard. Fire-and-forget: the deposit row already exists and must
+  // not depend on mail delivery.
+  void sendAdminAlert({
+    kind: "deposit",
+    userName: profile?.full_name ?? "A user",
+    userEmail: user.email,
+    amount: parsed.data.claimed_amount ?? null,
+    detail: `Tx ${txHash} · ${parsed.data.network}`,
+    actionPath: "/dashboard/deposits"
+  });
 
   try {
     const outcome = await runDepositVerification(deposit.id);

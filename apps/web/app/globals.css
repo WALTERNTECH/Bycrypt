@@ -16,10 +16,39 @@ body {
   color: #edf0f3;
 }
 
+html {
+  /* Stops the whole document rubber-banding past its edges, which is the
+     single biggest tell that something is a web page and not an app. */
+  overscroll-behavior-y: none;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   font-family: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+  /* Removes the 300ms double-tap-to-zoom delay so taps register instantly. */
+  touch-action: manipulation;
+}
+
+/* iOS zooms the viewport whenever a focused field is under 16px and does
+   not zoom back out afterwards, leaving the app scaled and panned. Every
+   text-entry control is therefore pinned to 16px on touch-capable
+   screens; the visual size is restored on pointer devices. */
+input,
+select,
+textarea {
+  font-size: 16px;
+}
+
+@media (min-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 14px;
+  }
 }
 
 ::selection {
@@ -49,8 +78,22 @@ body {
 }
 
 button:not(:disabled),
-a[role="button"] {
+a[role="button"],
+a,
+button {
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+/* Chrome/Safari render an opaque autofill background that ignores the
+   theme; this keeps filled fields on-palette. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #edf0f3;
+  -webkit-box-shadow: 0 0 0 1000px #191e26 inset;
+  caret-color: #edf0f3;
+  transition: background-color 9999s ease-out 0s;
 }
 
 @keyframes krypton-pulse {

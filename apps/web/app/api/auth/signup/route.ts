@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hashTransactionKey, isValidTransactionKey } from "@/lib/transactionKey";
+import { sendAdminAlert } from "@/lib/adminEmail";
 
 const bodySchema = z.object({
   full_name: z.string().min(1).max(120),
@@ -60,6 +61,17 @@ export async function POST(req: NextRequest) {
   if (keyError) {
     return NextResponse.json({ error: "Account created but setup failed — contact support." }, { status: 500 });
   }
+
+  // Alert support that someone joined. Deliberately not awaited into the
+  // response path — a slow or failing mail provider must not delay or
+  // fail an account that has already been created.
+  void sendAdminAlert({
+    kind: "signup",
+    userName: full_name,
+    userEmail: email,
+    detail: phone ? `Phone ${phone}` : null,
+    actionPath: `/dashboard/users/${created.user.id}`
+  });
 
   // Establish a real session for the new account via cookies, same as login.
   const cookieStore = cookies();

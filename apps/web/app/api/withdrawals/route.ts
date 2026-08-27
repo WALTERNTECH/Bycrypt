@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isValidTronAddress } from "@/lib/tron-address";
 import { verifyTransactionKey } from "@/lib/transactionKey";
+import { sendAdminAlert } from "@/lib/adminEmail";
 
 const bodySchema = z.object({
   amount: z.number().positive(),
@@ -69,6 +70,18 @@ export async function POST(req: NextRequest) {
       }))
     );
   }
+
+  // Email the payout queue alert. Fire-and-forget — the request is
+  // already recorded and must not hinge on mail delivery.
+  const { data: requester } = await admin.from("profiles").select("full_name").eq("id", user.id).maybeSingle();
+  void sendAdminAlert({
+    kind: "withdrawal",
+    userName: requester?.full_name ?? "A user",
+    userEmail: user.email,
+    amount: parsed.data.amount,
+    detail: `To ${parsed.data.destination_address}`,
+    actionPath: "/dashboard/withdrawals"
+  });
 
   return NextResponse.json({ withdrawal_id: withdrawalId, status: "pending" }, { status: 201 });
 }

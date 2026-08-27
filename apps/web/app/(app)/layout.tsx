@@ -21,12 +21,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <div className="min-h-screen bg-base">
-      <header className="sticky top-0 z-40 border-b border-border bg-base/95 backdrop-blur">
+      {/* App chrome is a white bar; the trading body below stays dark.
+          pt-[env(safe-area-inset-top)] keeps it clear of the notch when
+          launched from the home screen. */}
+      <header className="sticky top-0 z-40 bg-header pt-[env(safe-area-inset-top)] shadow-[0_1px_0_rgba(0,0,0,0.06),0_4px_16px_-8px_rgba(0,0,0,0.15)]">
         <TopBar />
         <TickerStrip rows={symbols ?? []} />
       </header>
 
-      <main className="mx-auto max-w-lg pb-20">
+      <main className="mx-auto max-w-lg pb-24">
         {children}
         <RiskNotice />
       </main>

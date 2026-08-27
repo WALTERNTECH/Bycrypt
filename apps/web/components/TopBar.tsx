@@ -2,7 +2,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { TelegramButton } from "./TelegramButton";
 import { KycBadge } from "./KycBadge";
-import { Logo } from "./Logo";
 
 export async function TopBar() {
   const supabase = createClient();
@@ -18,23 +17,28 @@ export async function TopBar() {
   ]);
 
   const telegramUrl = config?.value ?? "https://t.me/KRYPTONinv";
-  const initial = (profile?.full_name || user?.email || "?").trim().charAt(0).toUpperCase();
+  const name = (profile?.full_name || user?.email || "").trim();
+  const initial = (name || "?").charAt(0).toUpperCase();
+  const firstName = name.split(/[\s@]/)[0] || "Account";
 
   return (
-    <div className="flex h-14 items-center justify-between px-4 sm:px-6">
-      <div className="flex items-center gap-2.5">
-        <Link
-          href="/account"
-          aria-label="Account settings"
-          className="flex h-9 w-9 items-center justify-center rounded-full border border-border-strong bg-gradient-to-b from-surface-3 to-surface-2 text-sm font-extrabold text-brand shadow-btn transition-all duration-150 hover:border-brand/50 active:translate-y-px active:shadow-none"
-        >
+    <div className="flex h-16 items-center justify-between gap-2 bg-header px-3 sm:px-5">
+      {/* Identity — a real, tappable control, not a letter floating on the bar */}
+      <Link
+        href="/account"
+        aria-label="Account settings"
+        className="flex min-w-0 items-center gap-2.5 rounded-full border border-header-border bg-header-2 py-1 pl-1 pr-3 shadow-sm transition-all duration-150 hover:bg-header-3 active:translate-y-px active:shadow-none"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-header-dark text-sm font-extrabold text-white shadow-sm">
           {initial}
-        </Link>
-        <Link href="/" className="hidden sm:block">
-          <Logo />
-        </Link>
-      </div>
-      <div className="flex items-center gap-2">
+        </span>
+        <span className="flex min-w-0 flex-col leading-tight">
+          <span className="truncate text-[13px] font-bold text-header-text">{firstName}</span>
+          <span className="text-[10px] font-medium text-header-muted">View account</span>
+        </span>
+      </Link>
+
+      <div className="flex shrink-0 items-center gap-2">
         <KycBadge status={profile?.kyc_status ?? "unverified"} />
         <TelegramButton url={telegramUrl} />
       </div>

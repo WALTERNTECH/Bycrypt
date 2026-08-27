@@ -10,6 +10,8 @@ export function TelegramButton({
   label?: string;
 }) {
   if (variant === "icon") {
+    // Header variant: solid dark chip on the white bar so it reads as a
+    // real button, with the label kept for anything wider than a phone.
     return (
       <a
         href={url}
@@ -17,9 +19,10 @@ export function TelegramButton({
         rel="noopener noreferrer"
         title="Chat with Krypton Support on Telegram"
         aria-label="Krypton Support on Telegram"
-        className="flex h-9 w-9 items-center justify-center rounded-full bg-[#229ED9] text-white shadow-md shadow-[#229ED9]/30 ring-1 ring-white/10 transition-transform hover:scale-105 active:scale-95"
+        className="flex h-10 items-center gap-1.5 rounded-xl border border-header-dark bg-header-dark px-3 text-[13px] font-bold text-white shadow-sm transition-all duration-150 hover:bg-[#2B323B] active:translate-y-px active:shadow-none"
       >
         <SupportIcon className="h-[18px] w-[18px]" />
+        <span className="hidden sm:inline">Support</span>
       </a>
     );
   }
@@ -29,18 +32,10 @@ export function TelegramButton({
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-2 rounded-lg bg-[#29A9EA] px-4 py-2.5 text-sm font-bold text-white transition-colors hover:bg-[#3fb4ee]"
+      className="inline-flex items-center gap-2 rounded-xl border border-[#1B8FC4] bg-gradient-to-b from-[#35B3E8] to-[#229ED9] px-4 py-2.5 text-sm font-bold text-white shadow-btn transition-all duration-150 hover:from-[#48BCEC] hover:to-[#2BA8E0] active:translate-y-px active:shadow-none"
     >
-      <TelegramIcon className="h-4 w-4" />
+      <SupportIcon className="h-4 w-4" />
       {label}
     </a>
-  );
-}
-
-function TelegramIcon({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className={className}>
-      <path d="M21.05 3.44a1.5 1.5 0 0 0-1.55-.2L2.9 10.16a1.35 1.35 0 0 0 .07 2.5l4.36 1.44 1.7 5.46a1.2 1.2 0 0 0 2.02.5l2.4-2.3 4.3 3.2a1.4 1.4 0 0 0 2.22-.83l2.5-14.9a1.5 1.5 0 0 0-.42-1.29ZM9.7 14.2l-1.06-3.5 8.9-5.55c.2-.13.4.14.23.3l-7.4 6.86-.02.1-.65 1.8Z" />
-    </svg>
   );
 }
