@@ -1,8 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { ConfigForm } from "./ConfigForm";
+import { EmailSettings } from "./EmailSettings";
 
 export default async function ConfigPage() {
   const supabase = createClient();
+  // secure_config is service-role only and never rendered here.
   const { data: config } = await supabase.from("platform_config").select("*").order("key");
 
   return (
@@ -14,6 +16,7 @@ export default async function ConfigPage() {
       </p>
 
       <div className="mt-6 space-y-4">
+        <EmailSettings />
         {(config ?? []).map((c) => (
           <ConfigForm key={c.key} configKey={c.key} initialValue={c.value} />
         ))}
