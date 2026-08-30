@@ -49,7 +49,7 @@ export interface EmailStatus {
 // cPanel/Passenger the process is panel-managed and env changes land on
 // restart, so a module-scope capture is easy to get stale.
 function adminBaseUrl(): string {
-  return process.env.ADMIN_APP_URL ?? "https://admin.kryptoninvestments.online";
+  return process.env.ADMIN_APP_URL ?? "https://krypton-admin.onrender.com";
 }
 const SEND_TIMEOUT_MS = 15_000;
 
