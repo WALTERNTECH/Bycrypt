@@ -19,3 +19,5 @@ supabase/.temp/
 # cPanel deployment bundle (build artifact)
 apps/web/dist-cpanel/
 apps/web/krypton-web-cpanel.zip
+apps/admin/dist-cpanel/
+apps/admin/krypton-admin-cpanel.zip

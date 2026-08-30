@@ -45,7 +45,12 @@ export interface EmailStatus {
   source: Record<string, "env" | "database" | "default" | "missing">;
 }
 
-const ADMIN_BASE_URL = process.env.ADMIN_APP_URL ?? "https://krypton-admin.onrender.com";
+// Resolved per call rather than captured at module load: on
+// cPanel/Passenger the process is panel-managed and env changes land on
+// restart, so a module-scope capture is easy to get stale.
+function adminBaseUrl(): string {
+  return process.env.ADMIN_APP_URL ?? "https://admin.kryptoninvestments.online";
+}
 const SEND_TIMEOUT_MS = 15_000;
 
 const SECURE_KEYS = [
@@ -268,7 +273,7 @@ export async function sendAdminAlert(input: AlertInput): Promise<SendResult> {
       to,
       defaultFrom(provider, values),
       SUBJECTS[input.kind](input),
-      renderHtml(HEADLINES[input.kind], CTA[input.kind], `${ADMIN_BASE_URL}${input.actionPath ?? "/dashboard"}`, rows),
+      renderHtml(HEADLINES[input.kind], CTA[input.kind], `${adminBaseUrl()}${input.actionPath ?? "/dashboard"}`, rows),
       provider,
       values
     );
@@ -295,7 +300,7 @@ export async function sendTestEmail(): Promise<SendResult> {
       to,
       defaultFrom(provider, values),
       "Krypton — test alert",
-      renderHtml("Email alerts are working", "Open dashboard", `${ADMIN_BASE_URL}/dashboard`, [
+      renderHtml("Email alerts are working", "Open dashboard", `${adminBaseUrl()}/dashboard`, [
         ["Provider", provider.toUpperCase()],
         ["Destination", to],
         ["Time", `${when} UTC`]
