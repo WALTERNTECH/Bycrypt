@@ -6,8 +6,7 @@ export function RiskNotice() {
       <ShieldIcon className="mt-0.5 h-3 w-3 shrink-0" />
       <span>
         Risk notice: digital asset trading carries substantial risk of loss and may not be suitable
-        for all investors. Returns are variable and never guaranteed. Only invest what you can
-        afford to lose.
+        for all investors.
       </span>
     </p>
   );

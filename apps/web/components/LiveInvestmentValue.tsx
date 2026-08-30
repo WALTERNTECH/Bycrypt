@@ -2,6 +2,7 @@
 
 import { useLiveTickers } from "@/hooks/useLiveTickers";
 import { formatUsdt, formatPct } from "@/lib/format";
+import { leveragedValue, leveragedPct } from "@/lib/leverage";
 
 // Ticks with the real price movement of the coin this position holds —
 // an honest, market-linked unrealized figure. The admin-confirmed
@@ -18,9 +19,12 @@ export function LiveInvestmentValue({
 }) {
   const { tickers, connected } = useLiveTickers([symbol]);
   const t = tickers[symbol];
-  const livePct = t?.priceChangePercent ?? 0;
-  const liveValue = principal * (1 + livePct / 100);
-  const up = livePct >= 0;
+  const rawPct = t?.priceChangePercent ?? 0;
+  const liveValue = leveragedValue(principal, rawPct);
+  // The percentage shown is the position's move, not the coin's — a
+  // coin figure beside a position value would contradict it.
+  const livePct = leveragedPct(principal, rawPct);
+  const up = rawPct >= 0;
 
   return (
     <div>

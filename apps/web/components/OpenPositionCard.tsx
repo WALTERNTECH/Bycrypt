@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useLiveTickers } from "@/hooks/useLiveTickers";
 import { formatUsdt, formatPct } from "@/lib/format";
+import { leveragedValue, leveragedPct } from "@/lib/leverage";
 import { ClosePositionButton } from "./ClosePositionButton";
 
 // The home-screen view of the single open position: what's in it, how
@@ -20,9 +21,12 @@ export function OpenPositionCard({
 }) {
   const { tickers, connected } = useLiveTickers(symbol ? [symbol] : []);
   const t = symbol ? tickers[symbol] : undefined;
-  const livePct = t?.priceChangePercent ?? 0;
-  const liveValue = principal * (1 + livePct / 100);
-  const up = livePct >= 0;
+  const rawPct = t?.priceChangePercent ?? 0;
+  const liveValue = leveragedValue(principal, rawPct);
+  // Shown percentage is the position's move, not the coin's, so it
+  // agrees with the value above it.
+  const livePct = leveragedPct(principal, rawPct);
+  const up = rawPct >= 0;
   const coin = symbol?.replace("USDT", "") ?? "—";
   const settleValue = principal + accrued;
   const settlePct = principal > 0 ? (accrued / principal) * 100 : 0;

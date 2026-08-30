@@ -2,6 +2,7 @@
 
 import { useLiveTickers } from "@/hooks/useLiveTickers";
 import { formatUsdt, formatPct } from "@/lib/format";
+import { leveragedValue } from "@/lib/leverage";
 
 export interface LiveInvestment {
   amount: number;
@@ -35,7 +36,7 @@ export function LiveBalanceCard({
   const tradingLive = investments.reduce((sum, inv) => {
     const t = inv.traded_symbol ? tickers[inv.traded_symbol] : undefined;
     const pct = t?.priceChangePercent ?? 0;
-    return sum + inv.amount * (1 + pct / 100);
+    return sum + leveragedValue(inv.amount, pct);
   }, 0);
 
   const liveDelta = tradingLive - principal;
