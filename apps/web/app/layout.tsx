@@ -1,11 +1,21 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { InstallPrompt } from "@/components/InstallPrompt";
+import { ServiceWorkerRegistrar } from "@/components/ServiceWorkerRegistrar";
 
 export const metadata: Metadata = {
   title: "Krypton — Automated Crypto Trading & Custody",
   description:
     "Deposit USDT, choose a lockup period, and let Krypton's automated trading strategy work for you. Live crypto markets, transparent tiers, real on-chain deposits.",
-  icons: { icon: "data:," },
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [
+      { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" }
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }]
+  },
   // Treated as an installed app rather than a page: no browser chrome
   // when launched from the home screen, and a status bar that matches
   // the header instead of a white strip above it.
@@ -34,7 +44,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className="dark">
-      <body className="min-h-screen bg-base text-text-primary antialiased">{children}</body>
+      <body className="min-h-screen bg-base text-text-primary antialiased">
+        {children}
+        <ServiceWorkerRegistrar />
+        <InstallPrompt />
+      </body>
     </html>
   );
 }
