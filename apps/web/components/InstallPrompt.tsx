@@ -5,21 +5,36 @@ import { useEffect, useState } from "react";
 /**
  * Install prompt.
  *
- * Chrome/Edge/Android fire `beforeinstallprompt`, which hands us a
- * deferred event we can trigger from our own button — so the prompt is
- * a real one-tap install.
+ * There are four distinct situations and each needs different words,
+ * because offering an Install button that cannot work is worse than
+ * offering nothing:
  *
- * iOS Safari has no install API at all. There, the only route is
- * Share -> Add to Home Screen, so that platform gets a short
- * instruction sheet instead of a button that could not work.
+ *   chrome   Chrome/Edge/Android fired `beforeinstallprompt`, so we hold
+ *            the deferred event and installing is genuinely one tap.
  *
- * The sheet never appears when the app is already installed (it launches
- * in standalone display mode), and a dismissal is remembered so it does
- * not nag on every visit.
+ *   inapp    The page is inside WhatsApp/Telegram/Instagram/Facebook's
+ *            embedded browser. These never fire the event and cannot
+ *            install at all — the only way out is to reopen the link in
+ *            a real browser. This is the common case in practice, since
+ *            links get shared through chat apps, and it's exactly how a
+ *            user ends up hunting for an APK instead.
+ *
+ *   ios      iOS Safari has no install API; Share -> Add to Home Screen
+ *            is the only route.
+ *
+ *   manual   A real browser that hasn't fired the event (yet, or at
+ *            all). Point at the browser menu rather than claim nothing
+ *            is possible.
+ *
+ * Hidden entirely when already installed, and a dismissal is remembered
+ * so it doesn't nag.
  */
 
 const DISMISS_KEY = "krypton-install-dismissed";
 const DISMISS_DAYS = 14;
+const MANUAL_FALLBACK_MS = 3500;
+
+type Mode = "chrome" | "inapp" | "ios" | "manual";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -31,8 +46,7 @@ function recentlyDismissed(): boolean {
     const raw = localStorage.getItem(DISMISS_KEY);
     if (!raw) return false;
     const at = Number(raw);
-    if (!Number.isFinite(at)) return false;
-    return Date.now() - at < DISMISS_DAYS * 24 * 60 * 60 * 1000;
+    return Number.isFinite(at) && Date.now() - at < DISMISS_DAYS * 24 * 60 * 60 * 1000;
   } catch {
     return false;
   }
@@ -42,7 +56,6 @@ function isStandalone(): boolean {
   if (typeof window === "undefined") return false;
   return (
     window.matchMedia("(display-mode: standalone)").matches ||
-    // iOS reports installed state on navigator, not via display-mode.
     (window.navigator as unknown as { standalone?: boolean }).standalone === true
   );
 }
@@ -51,32 +64,51 @@ function isIos(): boolean {
   if (typeof navigator === "undefined") return false;
   return (
     /iphone|ipad|ipod/i.test(navigator.userAgent) ||
-    // iPadOS 13+ reports as a Mac; the touch points give it away.
     (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
   );
 }
 
+/**
+ * Embedded chat-app browsers. Android ones are WebViews and carry the
+ * "; wv)" token; iOS ones don't, so each app is matched by name too.
+ */
+function detectInAppBrowser(): string | null {
+  if (typeof navigator === "undefined") return null;
+  const ua = navigator.userAgent;
+
+  if (/FBAN|FBAV|FB_IAB/i.test(ua)) return "Facebook";
+  if (/Instagram/i.test(ua)) return "Instagram";
+  if (/WhatsApp/i.test(ua)) return "WhatsApp";
+  if (/\bLine\//i.test(ua)) return "LINE";
+  if (/MicroMessenger/i.test(ua)) return "WeChat";
+  if (/Twitter|TwitterAndroid/i.test(ua)) return "X";
+  if (/TelegramBot|Telegram/i.test(ua)) return "Telegram";
+  // Generic Android WebView — Telegram and several others land here.
+  if (/Android/i.test(ua) && /;\s*wv\)/i.test(ua)) return "this app";
+  return null;
+}
+
 export function InstallPrompt() {
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
-  const [visible, setVisible] = useState(false);
-  const [iosMode, setIosMode] = useState(false);
+  const [mode, setMode] = useState<Mode | null>(null);
   const [installing, setInstalling] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [inAppName, setInAppName] = useState<string>("this app");
 
   useEffect(() => {
     if (isStandalone() || recentlyDismissed()) return;
 
-    // Android/desktop Chrome: capture the event and show our own UI
-    // instead of the browser's mini-infobar.
+    const inApp = detectInAppBrowser();
+
     function onBeforeInstall(e: Event) {
       e.preventDefault();
       setDeferred(e as BeforeInstallPromptEvent);
-      setVisible(true);
+      setMode("chrome"); // a real prompt beats any fallback copy
     }
     window.addEventListener("beforeinstallprompt", onBeforeInstall);
 
-    // Once installed, get out of the way for good.
     function onInstalled() {
-      setVisible(false);
+      setMode(null);
       try {
         localStorage.setItem(DISMISS_KEY, String(Date.now()));
       } catch {
@@ -85,14 +117,16 @@ export function InstallPrompt() {
     }
     window.addEventListener("appinstalled", onInstalled);
 
-    // iOS never fires the event, so surface the manual route after a
-    // beat — long enough not to fight the first paint.
     let timer: ReturnType<typeof setTimeout> | undefined;
-    if (isIos()) {
-      timer = setTimeout(() => {
-        setIosMode(true);
-        setVisible(true);
-      }, 2500);
+    if (inApp) {
+      setInAppName(inApp);
+      timer = setTimeout(() => setMode((m) => m ?? "inapp"), 1200);
+    } else if (isIos()) {
+      timer = setTimeout(() => setMode((m) => m ?? "ios"), 2500);
+    } else {
+      // Give beforeinstallprompt a chance first; if it never comes,
+      // fall back to pointing at the browser menu.
+      timer = setTimeout(() => setMode((m) => m ?? "manual"), MANUAL_FALLBACK_MS);
     }
 
     return () => {
@@ -103,7 +137,7 @@ export function InstallPrompt() {
   }, []);
 
   function dismiss() {
-    setVisible(false);
+    setMode(null);
     try {
       localStorage.setItem(DISMISS_KEY, String(Date.now()));
     } catch {
@@ -117,22 +151,31 @@ export function InstallPrompt() {
     try {
       await deferred.prompt();
       const { outcome } = await deferred.userChoice;
-      if (outcome === "accepted" || outcome === "dismissed") {
-        setVisible(false);
-        // A declined native prompt shouldn't re-ask on the next page view.
-        if (outcome === "dismissed") dismiss();
-      }
+      setMode(null);
+      if (outcome === "dismissed") dismiss();
     } finally {
       setInstalling(false);
       setDeferred(null);
     }
   }
 
-  if (!visible) return null;
+  async function copyLink() {
+    const url = "https://kryptoninvestments.online";
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2200);
+    } catch {
+      // Clipboard can be blocked inside embedded browsers; select-to-copy
+      // via the visible URL text is the fallback.
+      setCopied(false);
+    }
+  }
+
+  if (!mode) return null;
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-[60] flex justify-center px-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
-      {/* scrim so the sheet reads as a layer above the app */}
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" />
 
       <div className="rise-in relative w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-surface shadow-lift">
@@ -146,10 +189,16 @@ export function InstallPrompt() {
           />
 
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-text-primary">Install Krypton</p>
+            <p className="text-sm font-bold text-text-primary">
+              {mode === "inapp" ? "Open in your browser to install" : "Install Krypton"}
+            </p>
             <p className="mt-0.5 text-xs leading-relaxed text-text-secondary">
-              {iosMode
+              {mode === "inapp"
+                ? `${inAppName}'s built-in browser can't install apps. Open this link in Chrome or Safari, then install from there.`
+                : mode === "ios"
                 ? "Add Krypton to your Home Screen for full-screen access and faster launches."
+                : mode === "manual"
+                ? "Add Krypton to your device from your browser menu for full-screen access."
                 : "Get the full-screen app on your device — faster launches, no browser bar."}
             </p>
           </div>
@@ -165,7 +214,61 @@ export function InstallPrompt() {
           </button>
         </div>
 
-        {iosMode ? (
+        {mode === "chrome" && (
+          <div className="flex gap-2 border-t border-border p-3">
+            <button
+              onClick={install}
+              disabled={installing}
+              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#C9990A] bg-gradient-to-b from-brand-hover to-brand py-3 text-sm font-bold leading-none text-ink shadow-btn-brand transition-all duration-150 hover:from-[#FFD84D] hover:to-[#F7C21A] active:translate-y-px active:shadow-none disabled:opacity-50"
+            >
+              <DownloadIcon />
+              {installing ? "Installing…" : "Install app"}
+            </button>
+            <button
+              onClick={dismiss}
+              className="rounded-xl border border-border-strong bg-gradient-to-b from-surface-3 to-surface-2 px-4 text-sm font-bold text-text-primary shadow-btn transition-all duration-150 active:translate-y-px active:shadow-none"
+            >
+              Not now
+            </button>
+          </div>
+        )}
+
+        {mode === "inapp" && (
+          <div className="border-t border-border p-3">
+            <ol className="space-y-2 text-xs text-text-secondary">
+              <li className="flex items-start gap-2">
+                <Step n={1} />
+                <span>
+                  Tap the <span className="font-semibold text-text-primary">⋮</span> or{" "}
+                  <span className="font-semibold text-text-primary">⋯</span> menu at the top of this
+                  screen, then{" "}
+                  <span className="font-semibold text-text-primary">Open in browser</span>
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Step n={2} />
+                <span>
+                  In Chrome or Safari, tap{" "}
+                  <span className="font-semibold text-text-primary">Install</span> when it appears
+                </span>
+              </li>
+            </ol>
+
+            <div className="mt-3 flex items-center gap-2 rounded-lg border border-border bg-surface-2 px-3 py-2">
+              <span className="mono-num min-w-0 flex-1 truncate text-[11px] text-text-secondary">
+                kryptoninvestments.online
+              </span>
+              <button
+                onClick={copyLink}
+                className="shrink-0 rounded-lg border border-border-strong bg-gradient-to-b from-surface-3 to-surface-2 px-3 py-1.5 text-[11px] font-bold text-text-primary shadow-btn transition-all duration-150 active:translate-y-px active:shadow-none"
+              >
+                {copied ? "Copied" : "Copy link"}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {mode === "ios" && (
           <div className="border-t border-border px-4 py-3">
             <ol className="space-y-2 text-xs text-text-secondary">
               <li className="flex items-center gap-2">
@@ -185,25 +288,25 @@ export function InstallPrompt() {
               </li>
             </ol>
           </div>
-        ) : (
-          <div className="flex gap-2 border-t border-border p-3">
-            <button
-              onClick={install}
-              disabled={installing || !deferred}
-              className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#C9990A] bg-gradient-to-b from-brand-hover to-brand py-3 text-sm font-bold leading-none text-ink shadow-btn-brand transition-all duration-150 hover:from-[#FFD84D] hover:to-[#F7C21A] active:translate-y-px active:shadow-none disabled:opacity-50"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-4 w-4">
-                <path d="M12 4v11M12 15l-4-4M12 15l4-4" strokeLinecap="round" strokeLinejoin="round" />
-                <path d="M5 19h14" strokeLinecap="round" />
-              </svg>
-              {installing ? "Installing…" : "Install app"}
-            </button>
-            <button
-              onClick={dismiss}
-              className="rounded-xl border border-border-strong bg-gradient-to-b from-surface-3 to-surface-2 px-4 text-sm font-bold text-text-primary shadow-btn transition-all duration-150 active:translate-y-px active:shadow-none"
-            >
-              Not now
-            </button>
+        )}
+
+        {mode === "manual" && (
+          <div className="border-t border-border px-4 py-3">
+            <ol className="space-y-2 text-xs text-text-secondary">
+              <li className="flex items-start gap-2">
+                <Step n={1} />
+                <span>
+                  Open your browser menu (<span className="font-semibold text-text-primary">⋮</span>)
+                </span>
+              </li>
+              <li className="flex items-start gap-2">
+                <Step n={2} />
+                <span>
+                  Tap <span className="font-semibold text-text-primary">Install app</span> or{" "}
+                  <span className="font-semibold text-text-primary">Add to Home screen</span>
+                </span>
+              </li>
+            </ol>
           </div>
         )}
       </div>
@@ -213,9 +316,18 @@ export function InstallPrompt() {
 
 function Step({ n }: { n: number }) {
   return (
-    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border-strong bg-surface-2 text-[10px] font-bold text-text-secondary">
+    <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-border-strong bg-surface-2 text-[10px] font-bold text-text-secondary">
       {n}
     </span>
+  );
+}
+
+function DownloadIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-4 w-4">
+      <path d="M12 4v11M12 15l-4-4M12 15l4-4" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 19h14" strokeLinecap="round" />
+    </svg>
   );
 }
 
