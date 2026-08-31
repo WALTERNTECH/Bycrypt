@@ -75,6 +75,14 @@ const ENV_FOR: Record<SecureKey, string> = {
   resend_api_key: "RESEND_API_KEY"
 };
 
+// Providers compare the recipient as an exact string — Resend rejects a
+// send to "User@x.com" when the account is "user@x.com", even though the
+// mailbox is identical. Addresses are therefore lower-cased on the way
+// in; other settings are left untouched.
+function normalize(key: SecureKey, value: string): string {
+  return key === "admin_notification_email" ? value.toLowerCase() : value;
+}
+
 interface Settings {
   values: Partial<Record<SecureKey, string>>;
   source: Record<string, "env" | "database" | "default" | "missing">;
@@ -98,10 +106,10 @@ async function loadSettings(): Promise<Settings> {
     const envVal = process.env[ENV_FOR[key]]?.trim();
     const dbVal = fromDb.get(key)?.trim();
     if (envVal) {
-      values[key] = envVal;
+      values[key] = normalize(key, envVal);
       source[key] = "env";
     } else if (dbVal) {
-      values[key] = dbVal;
+      values[key] = normalize(key, dbVal);
       source[key] = "database";
     } else {
       source[key] = "missing";
