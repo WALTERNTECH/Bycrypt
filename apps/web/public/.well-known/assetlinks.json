@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "online.kryptoninvestments.app",
+      "sha256_cert_fingerprints": [
+        "48:66:83:DF:58:5C:DD:65:92:4E:1E:7F:4F:A1:C6:C9:C2:68:D4:1C:5A:66:95:31:8C:96:FF:10:2B:06:DF:E2"
+      ]
+    }
+  }
+]

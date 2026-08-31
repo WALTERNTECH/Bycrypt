@@ -1,0 +1,43 @@
+{
+  "packageId": "online.kryptoninvestments.app",
+  "host": "kryptoninvestments.online",
+  "name": "Krypton",
+  "launcherName": "Krypton",
+  "display": "standalone",
+  "themeColor": "#FFFFFF",
+  "themeColorDark": "#0A0D12",
+  "navigationColor": "#0A0D12",
+  "navigationColorDark": "#0A0D12",
+  "navigationDividerColor": "#0A0D12",
+  "navigationDividerColorDark": "#0A0D12",
+  "backgroundColor": "#0A0D12",
+  "enableNotifications": false,
+  "startUrl": "/",
+  "iconUrl": "https://kryptoninvestments.online/icons/icon-512.png",
+  "maskableIconUrl": "https://kryptoninvestments.online/icons/icon-maskable-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "C:/Users/USER/Bycrypt/android/krypton-release.keystore",
+    "alias": "krypton"
+  },
+  "appVersionName": "1.0.0",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://kryptoninvestments.online/manifest.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://kryptoninvestments.online/",
+  "minSdkVersion": 21,
+  "orientation": "portrait",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "displayOverride": []
+}
