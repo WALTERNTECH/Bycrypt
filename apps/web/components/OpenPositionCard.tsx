@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useLiveTickers } from "@/hooks/useLiveTickers";
 import { formatUsdt, formatPct } from "@/lib/format";
-import { leveragedValue, leveragedPct } from "@/lib/leverage";
+import { leveragedValue, leveragedPct, leveragedProfit } from "@/lib/leverage";
 import { ClosePositionButton } from "./ClosePositionButton";
 
 // The home-screen view of the single open position: what's in it, how
@@ -28,8 +28,14 @@ export function OpenPositionCard({
   const livePct = leveragedPct(principal, rawPct);
   const up = rawPct >= 0;
   const coin = symbol?.replace("USDT", "") ?? "—";
-  const settleValue = principal + accrued;
-  const settlePct = principal > 0 ? (accrued / principal) * 100 : 0;
+
+  // What closing actually pays: the larger of the market profit and the
+  // admin-set floor, on top of the stake. Profit never goes below zero,
+  // so a losing position returns the stake rather than eating the
+  // wallet — which is why this can read higher than the live value.
+  const settleProfit = Math.max(accrued, leveragedProfit(principal, rawPct), 0);
+  const settleValue = principal + settleProfit;
+  const settlePct = principal > 0 ? (settleProfit / principal) * 100 : 0;
 
   return (
     <div className="mt-3 overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
@@ -78,7 +84,7 @@ export function OpenPositionCard({
       </div>
 
       <div className="border-t border-border p-3">
-        <ClosePositionButton investmentId={id} settleValue={settleValue} size="md" />
+        <ClosePositionButton investmentId={id} symbol={symbol} principal={principal} accrued={accrued} size="md" />
         <p className="mt-2 text-center text-[10px] leading-relaxed text-text-tertiary">
           Closing moves your funds back to your Krypton wallet. Withdrawals are made from the wallet.
         </p>

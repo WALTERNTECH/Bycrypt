@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/Badge";
 import { LiveInvestmentValue } from "@/components/LiveInvestmentValue";
 import { ClosePositionButton } from "@/components/ClosePositionButton";
+import { SettlementValue } from "@/components/SettlementValue";
 import { ButtonLink } from "@/components/ui";
 import { formatUsdt, formatPct, formatDate, daysRemaining } from "@/lib/format";
 
@@ -94,12 +95,18 @@ export default async function InvestmentsPage() {
                   <p className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
                     {isOpen ? "Settles at" : "Return"}
                   </p>
-                  <p className="mono-num mt-1 text-sm font-bold text-text-primary">
-                    {formatUsdt(isOpen ? settleValue : accrued, { withSymbol: true })}
-                  </p>
-                  <p className={`mono-num text-[10px] font-bold ${accrued > 0 ? "text-positive" : "text-text-tertiary"}`}>
-                    {formatPct(settlePct, { signed: true })}
-                  </p>
+                  {isOpen ? (
+                    <SettlementValue symbol={inv.traded_symbol} principal={principal} accrued={accrued} />
+                  ) : (
+                    <>
+                      <p className="mono-num mt-1 text-sm font-bold text-text-primary">
+                        {formatUsdt(accrued, { withSymbol: true })}
+                      </p>
+                      <p className={`mono-num text-[10px] font-bold ${accrued > 0 ? "text-positive" : "text-text-tertiary"}`}>
+                        {formatPct(settlePct, { signed: true })}
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -113,7 +120,7 @@ export default async function InvestmentsPage() {
                       {tier?.min_return_pct ? `${parseFloat(tier.min_return_pct)}% floor · uncapped` : ""}
                     </span>
                   </div>
-                  <ClosePositionButton investmentId={inv.id} settleValue={settleValue} />
+                  <ClosePositionButton investmentId={inv.id} symbol={inv.traded_symbol} principal={principal} accrued={accrued} />
                 </div>
               )}
             </div>

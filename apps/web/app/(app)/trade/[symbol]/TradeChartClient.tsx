@@ -8,6 +8,7 @@ import { useLiveTickers } from "@/hooks/useLiveTickers";
 import { FormField, inputClass } from "@/components/FormField";
 import { Button, ButtonLink } from "@/components/ui";
 import { formatUsdt, formatPct } from "@/lib/format";
+import { settlementOf } from "@/components/SettlementValue";
 import { SUPPORTED_INTERVALS, type Interval } from "@/lib/binance";
 
 interface OpenPosition {
@@ -59,7 +60,14 @@ export function TradeChartClient({
   const positionHere = openPosition && openPosition.symbol === symbol ? openPosition : null;
   const positionElsewhere = openPosition && openPosition.symbol !== symbol ? openPosition : null;
   const coin = symbol.replace("USDT", "");
-  const settleValue = openPosition ? openPosition.amount + openPosition.accrued : 0;
+  // Same formula the server settles with, so the ticket agrees with the payout.
+  const settleValue = openPosition
+    ? settlementOf(
+        openPosition.amount,
+        openPosition.accrued,
+        tickers[openPosition.symbol]?.priceChangePercent ?? 0
+      ).total
+    : 0;
 
   function applyPreset(fraction: number) {
     const v = walletBalance * fraction;
@@ -99,10 +107,12 @@ export function TradeChartClient({
       const res = await fetch(`/api/investments/${position.id}/cashout`, { method: "POST" });
       const data = await res.json();
       if (!res.ok) return setError(data.error ?? "Could not close this position.");
+      // Use the server-reported credit rather than a local estimate — it
+      // is the amount that actually moved.
       setTicket({
         side: "SELL",
         symbol: position.symbol,
-        amount: position.amount + position.accrued,
+        amount: typeof data?.credited === "number" ? data.credited : settleValue,
         time: new Date().toLocaleString()
       });
       setPanel("none");
