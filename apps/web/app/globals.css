@@ -128,3 +128,10 @@ input:-webkit-autofill:focus {
     animation: none;
   }
 }
+
+/* The install banner is pinned to the bottom of the viewport, which is
+   also where a confirmation's buttons land. While one is open the banner
+   stands down rather than covering the control the user is reaching for. */
+body:has([data-confirm-open]) [data-install-prompt] {
+  display: none;
+}

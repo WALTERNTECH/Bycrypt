@@ -58,15 +58,19 @@ export function pickSignal(
 ): Signal | null {
   const nameOf = (sym: string) => rows.find((r) => r.symbol === sym)?.display_name ?? sym.replace("USDT", "");
 
-  // Holding something: the only available action is closing it, so the
-  // call is about that coin and turns to SELL when it moves against them.
+  // Holding something: the only available action is closing it. Buying is
+  // blocked while a position is open, so a "buy" call here would dead-end
+  // on a disabled button exactly the way the old sell call did. While the
+  // held coin is rising there is nothing to advise — the position card
+  // directly above already shows it live — so the signal stays quiet and
+  // speaks only when the coin turns down.
   if (heldSymbol) {
     const t = tickers[heldSymbol];
-    if (!t) return null;
+    if (!t || t.priceChangePercent >= 0) return null;
     return {
       symbol: heldSymbol,
       displayName: nameOf(heldSymbol),
-      side: t.priceChangePercent < 0 ? "SELL" : "BUY",
+      side: "SELL",
       changePct: t.priceChangePercent
     };
   }

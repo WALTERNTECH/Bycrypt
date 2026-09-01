@@ -175,7 +175,7 @@ export function InstallPrompt() {
   if (!mode) return null;
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-[60] flex justify-center px-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
+    <div data-install-prompt className="fixed inset-x-0 bottom-0 z-[60] flex justify-center px-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
       <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 to-transparent" />
 
       <div className="rise-in relative w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-surface shadow-lift">

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { fetchTickers } from "@/lib/binance";
 import { leveragedProfit } from "@/lib/leverage";
 
@@ -21,10 +20,11 @@ const REASON_MESSAGES: Record<string, string> = {
  * profit would let anyone mint wallet balance by posting a large value,
  * and this credits real money.
  *
- * The position's own row is read with the service role purely to learn
- * which symbol it holds; the settlement itself runs through the
- * auth.uid()-scoped RPC, so a user still cannot close someone else's
- * position.
+ * The row is read through the caller's own client, not the service role.
+ * RLS on investments already restricts SELECT to the owner, so this both
+ * enforces ownership and keeps settlement working even if the service-role
+ * key is absent — with the admin client, a missing key silently produced a
+ * zero profit and paid back the principal alone.
  */
 export async function POST(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = createClient();
@@ -36,14 +36,13 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   // Work out what the position is currently worth on the market.
   let marketProfit = 0;
   try {
-    const admin = createAdminClient();
-    const { data: inv } = await admin
+    const { data: inv } = await supabase
       .from("investments")
-      .select("amount, traded_symbol, user_id, status")
+      .select("amount, traded_symbol, status")
       .eq("id", params.id)
       .maybeSingle();
 
-    if (inv && inv.user_id === user.id && inv.status !== "withdrawn" && inv.traded_symbol) {
+    if (inv && inv.status !== "withdrawn" && inv.traded_symbol) {
       const principal = parseFloat(String(inv.amount));
       const tickers = await fetchTickers([inv.traded_symbol]);
       const t = tickers[inv.traded_symbol];

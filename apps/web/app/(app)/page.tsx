@@ -96,20 +96,29 @@ function ActionTile({
   icon: React.ReactNode;
   tone: "brand" | "positive" | "neutral";
 }) {
-  const tones = {
-    brand:
-      "bg-gradient-to-b from-brand-hover to-brand text-ink border-[#C9990A] shadow-btn-brand hover:from-[#FFD84D] hover:to-[#F7C21A]",
-    positive:
-      "bg-gradient-to-b from-surface-3 to-surface-2 text-positive border-border-strong shadow-btn hover:border-positive/50",
-    neutral:
-      "bg-gradient-to-b from-surface-3 to-surface-2 text-text-primary border-border-strong shadow-btn hover:border-border-strong"
-  };
+  // All three tiles share one anatomy — same height, same label weight and
+  // colour — so the row reads as one set of controls. The tone used to
+  // recolour the whole tile, which left "Deposit" green beside a white
+  // "Withdraw" and made two equivalent buttons look like different kinds
+  // of thing. Colour coding now lives in the icon chip alone, which
+  // distinguishes them without breaking the set.
+  const primary = tone === "brand";
+  const chip = {
+    brand: "bg-ink/10 text-ink",
+    positive: "bg-positive/10 text-positive ring-1 ring-inset ring-positive/25",
+    neutral: "bg-info/10 text-info ring-1 ring-inset ring-info/25"
+  }[tone];
+
   return (
     <Link
       href={href}
-      className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border py-3.5 transition-all duration-150 active:translate-y-px active:shadow-none ${tones[tone]}`}
+      className={`flex flex-col items-center justify-center gap-2 rounded-xl border py-3.5 transition-all duration-150 active:translate-y-px active:shadow-none ${
+        primary
+          ? "bg-gradient-to-b from-brand-hover to-brand text-ink border-[#C9990A] shadow-btn-brand hover:from-[#FFD84D] hover:to-[#F7C21A]"
+          : "bg-gradient-to-b from-surface-3 to-surface-2 text-text-primary border-border-strong shadow-btn hover:from-[#262E3A] hover:to-[#1E242E]"
+      }`}
     >
-      {icon}
+      <span className={`flex h-8 w-8 items-center justify-center rounded-lg ${chip}`}>{icon}</span>
       <span className="text-xs font-bold">{label}</span>
     </Link>
   );

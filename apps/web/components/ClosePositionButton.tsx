@@ -57,7 +57,10 @@ export function ClosePositionButton({
 
   if (confirming) {
     return (
-      <div className="rounded-xl border border-border-strong bg-surface-2 p-3">
+      // data-confirm-open lets the install banner stand down while a
+      // confirmation is on screen — it is fixed to the bottom of the
+      // viewport and was landing on top of these buttons.
+      <div data-confirm-open className="rounded-xl border border-border-strong bg-surface-2 p-3">
         <p className="text-xs leading-relaxed text-text-secondary">
           Close this position and move{" "}
           <span className="mono-num font-bold text-text-primary">{formatUsdt(total, { withSymbol: true })}</span> into

@@ -308,7 +308,7 @@ export function TradeChartClient({
         )}
 
         {panel === "buy" && (
-          <form onSubmit={handleBuy} className="space-y-3">
+          <form onSubmit={handleBuy} data-confirm-open className="space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-sm font-bold text-positive">Buy {coin}</p>
               <span className="rounded border border-border-strong bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold text-text-secondary">
@@ -376,7 +376,7 @@ export function TradeChartClient({
         )}
 
         {panel === "sell" && openPosition && (
-          <div className="space-y-3">
+          <div data-confirm-open className="space-y-3">
             <p className="text-sm font-bold text-negative">Sell {heldCoin}</p>
             <div className="divide-y divide-border overflow-hidden rounded-xl border border-border text-xs">
               <Row label="Staked" value={formatUsdt(openPosition.amount, { withSymbol: true })} />

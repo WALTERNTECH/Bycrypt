@@ -23,7 +23,14 @@ export function CandleChart({ symbol, interval }: { symbol: string; interval: In
       height: 420,
       timeScale: { timeVisible: true, borderColor: "#2B3139" },
       rightPriceScale: { borderColor: "#2B3139" },
-      crosshair: { mode: 0 }
+      crosshair: { mode: 0 },
+      // The chart sits mid-page on a phone, with the order controls below
+      // it. Left to its defaults it swallows vertical drags and the wheel
+      // to pan itself, so the page cannot be scrolled past it and the Buy
+      // and Sell buttons become unreachable. Vertical gestures are handed
+      // back to the page; horizontal drag and pinch still work the chart.
+      handleScroll: { vertTouchDrag: false, mouseWheel: false },
+      handleScale: { axisPressedMouseMove: { time: true, price: false } }
     });
 
     const series = chart.addCandlestickSeries({
