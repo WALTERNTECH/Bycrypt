@@ -9,7 +9,6 @@ import { sendAdminAlert } from "@/lib/adminEmail";
 const bodySchema = z.object({
   full_name: z.string().min(1).max(120),
   email: z.string().email(),
-  phone: z.string().max(20).optional().nullable(),
   password: z.string().min(8).max(72),
   transaction_key: z.string(),
   ref_code: z.string().max(12).optional().nullable()
@@ -28,7 +27,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Please check your details and try again." }, { status: 400 });
   }
-  const { full_name, email, phone, password, transaction_key, ref_code } = parsed.data;
+  const { full_name, email, password, transaction_key, ref_code } = parsed.data;
 
   if (!isValidTransactionKey(transaction_key)) {
     return NextResponse.json(
@@ -43,7 +42,7 @@ export async function POST(req: NextRequest) {
     email,
     password,
     email_confirm: true,
-    user_metadata: { full_name, phone: phone || null, ref_code: ref_code || null }
+    user_metadata: { full_name, ref_code: ref_code || null }
   });
 
   if (createError) {
@@ -69,7 +68,6 @@ export async function POST(req: NextRequest) {
     kind: "signup",
     userName: full_name,
     userEmail: email,
-    detail: phone ? `Phone ${phone}` : null,
     actionPath: `/dashboard/users/${created.user.id}`
   });
 

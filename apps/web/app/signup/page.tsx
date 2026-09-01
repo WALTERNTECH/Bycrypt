@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthCard } from "@/components/AuthCard";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
+import { SecretInput } from "@/components/SecretInput";
 import { isValidTransactionKey } from "@/lib/transactionKey";
 
 export default function SignupPage() {
@@ -17,7 +18,6 @@ export default function SignupPage() {
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [transactionKey, setTransactionKey] = useState("");
   const [confirmKey, setConfirmKey] = useState("");
@@ -54,7 +54,6 @@ export default function SignupPage() {
         body: JSON.stringify({
           full_name: fullName,
           email,
-          phone: phone || null,
           password,
           transaction_key: transactionKey,
           ref_code: refCode || null
@@ -105,14 +104,6 @@ export default function SignupPage() {
             placeholder="you@example.com"
           />
         </FormField>
-        <FormField label="Phone (optional)">
-          <input
-            className={inputClass}
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            placeholder="+254 7XX XXX XXX"
-          />
-        </FormField>
         <FormField label="Password" hint="At least 8 characters.">
           <input
             required
@@ -132,22 +123,10 @@ export default function SignupPage() {
           </p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             <FormField label="Set transaction key">
-              <input
-                required
-                className={inputClass}
-                value={transactionKey}
-                onChange={(e) => setTransactionKey(e.target.value)}
-                placeholder="6-32 letters/numbers"
-              />
+              <SecretInput required value={transactionKey} onChange={setTransactionKey} placeholder="6-32 letters/numbers" />
             </FormField>
             <FormField label="Confirm transaction key">
-              <input
-                required
-                className={inputClass}
-                value={confirmKey}
-                onChange={(e) => setConfirmKey(e.target.value)}
-                placeholder="Re-enter key"
-              />
+              <SecretInput required value={confirmKey} onChange={setConfirmKey} placeholder="Re-enter key" />
             </FormField>
           </div>
         </div>

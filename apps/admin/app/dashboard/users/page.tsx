@@ -10,7 +10,7 @@ export default async function AdminUsersPage() {
   const [{ data: profiles }, { data: deposits }, { data: openPositions }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("id, full_name, phone, status, kyc_status, wallet_balance, created_at")
+      .select("id, full_name, phone, status, wallet_balance, created_at")
       .order("created_at", { ascending: false }),
     // Confirmed deposits only — a pending row isn't money the user has.
     supabase
@@ -67,7 +67,6 @@ export default async function AdminUsersPage() {
       phone: p.phone,
       email: emailById.get(p.id) ?? "—",
       status: p.status,
-      kyc_status: p.kyc_status,
       wallet_balance: wallet,
       position_value: pos?.value ?? 0,
       position_symbol: pos?.symbol ?? null,

@@ -37,13 +37,3 @@ export function StatusBadge({ status }: { status: string }) {
   return <Badge tone={statusTone[status] ?? "neutral"}>{status.replace(/_/g, " ")}</Badge>;
 }
 
-const kycTone: Record<string, "positive" | "negative" | "brand" | "neutral"> = {
-  approved: "positive",
-  pending: "brand",
-  rejected: "negative",
-  unverified: "neutral"
-};
-
-export function KycStatusBadge({ status }: { status: string }) {
-  return <Badge tone={kycTone[status] ?? "neutral"}>{(status ?? "unverified").replace(/_/g, " ")}</Badge>;
-}

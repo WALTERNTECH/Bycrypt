@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { StatusBadge, KycStatusBadge } from "@/components/Badge";
+import { StatusBadge } from "@/components/Badge";
 import { formatUsdt, formatDateTime } from "@/lib/format";
 import { AdjustWalletForm } from "./AdjustWalletForm";
 import { PositionValueForm } from "@/components/PositionValueForm";
@@ -18,15 +18,14 @@ export default async function UserDetailPage({ params }: { params: { id: string 
     ? (await admin.from("profiles").select("full_name").eq("id", profile.referred_by).maybeSingle()).data?.full_name
     : null;
 
-  const [{ data: deposits }, { data: investments }, { data: withdrawals }, { data: kycSubmissions }] = await Promise.all([
+  const [{ data: deposits }, { data: investments }, { data: withdrawals }] = await Promise.all([
     supabase.from("deposits").select("*").eq("user_id", params.id).order("submitted_at", { ascending: false }),
     supabase
       .from("investments")
       .select("*, investment_tiers(name, min_return_pct)")
       .eq("user_id", params.id)
       .order("created_at", { ascending: false }),
-    supabase.from("withdrawals").select("*").eq("user_id", params.id).order("requested_at", { ascending: false }),
-    supabase.from("kyc_submissions").select("*").eq("user_id", params.id).order("submitted_at", { ascending: false })
+    supabase.from("withdrawals").select("*").eq("user_id", params.id).order("requested_at", { ascending: false })
   ]);
 
   // Krypton runs one position at a time, so the newest non-withdrawn
@@ -41,7 +40,6 @@ export default async function UserDetailPage({ params }: { params: { id: string 
       </p>
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <StatusBadge status={profile.status} />
-        <KycStatusBadge status={profile.kyc_status} />
         <span className="mono-num rounded-md bg-panel-2 px-2 py-0.5 text-xs font-semibold text-text-primary">
           Wallet: {formatUsdt(profile.wallet_balance ?? 0, { withSymbol: true })}
         </span>
@@ -85,26 +83,6 @@ export default async function UserDetailPage({ params }: { params: { id: string 
           </div>
         )}
       </div>
-
-      <Section title="KYC submissions">
-        <Table
-          rows={kycSubmissions ?? []}
-          empty="No verification submitted yet."
-          columns={[
-            { header: "Submitted", cell: (k: any) => formatDateTime(k.submitted_at) },
-            { header: "ID type", cell: (k: any) => k.id_type.replace(/_/g, " ") },
-            { header: "ID number", cell: (k: any) => k.id_number },
-            { header: "Status", cell: (k: any) => <StatusBadge status={k.status} /> }
-          ]}
-        />
-        <div className="border-t border-border/40 px-5 py-3 text-xs text-text-secondary">
-          Review and approve/reject submissions from the{" "}
-          <a href="/dashboard/kyc" className="text-brand">
-            KYC queue
-          </a>
-          .
-        </div>
-      </Section>
 
       <Section title="Deposits">
         <Table

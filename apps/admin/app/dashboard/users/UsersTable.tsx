@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { StatusBadge, KycStatusBadge } from "@/components/Badge";
+import { StatusBadge } from "@/components/Badge";
 import { formatUsdt, formatDateTime } from "@/lib/format";
 
 export interface UserRow {
@@ -12,7 +12,6 @@ export interface UserRow {
   phone: string | null;
   email: string;
   status: string;
-  kyc_status: string;
   wallet_balance: number;
   position_value: number;
   position_symbol: string | null;
@@ -37,7 +36,6 @@ const SORTS: { key: SortKey; label: string }[] = [
 export function UsersTable({ users }: { users: UserRow[] }) {
   const [sort, setSort] = useState<SortKey>("newest");
   const [query, setQuery] = useState("");
-  const [kycFilter, setKycFilter] = useState<string>("all");
 
   const rows = useMemo(() => {
     let out = users;
@@ -51,7 +49,6 @@ export function UsersTable({ users }: { users: UserRow[] }) {
           (u.phone ?? "").toLowerCase().includes(q)
       );
     }
-    if (kycFilter !== "all") out = out.filter((u) => u.kyc_status === kycFilter);
 
     const sorted = [...out];
     sorted.sort((a, b) => {
@@ -70,7 +67,7 @@ export function UsersTable({ users }: { users: UserRow[] }) {
       }
     });
     return sorted;
-  }, [users, sort, query, kycFilter]);
+  }, [users, sort, query]);
 
   const control =
     "rounded-lg border border-border bg-panel-2 px-2.5 py-1.5 text-xs text-text-primary outline-none focus:border-brand";
@@ -84,13 +81,6 @@ export function UsersTable({ users }: { users: UserRow[] }) {
           placeholder="Search name, email or phone"
           className={`${control} min-w-[220px] flex-1`}
         />
-        <select value={kycFilter} onChange={(e) => setKycFilter(e.target.value)} className={control}>
-          <option value="all">All KYC</option>
-          <option value="approved">Approved</option>
-          <option value="pending">Pending</option>
-          <option value="rejected">Rejected</option>
-          <option value="unverified">Unverified</option>
-        </select>
         <div className="flex gap-1 rounded-lg border border-border bg-panel p-0.5">
           {SORTS.map((s) => (
             <button
@@ -120,7 +110,6 @@ export function UsersTable({ users }: { users: UserRow[] }) {
               <th className="px-4 py-3 font-medium">Total</th>
               <th className="px-4 py-3 font-medium">Deposited</th>
               <th className="px-4 py-3 font-medium">Last deposit</th>
-              <th className="px-4 py-3 font-medium">KYC</th>
               <th className="px-4 py-3 font-medium">Status</th>
             </tr>
           </thead>
@@ -180,16 +169,13 @@ export function UsersTable({ users }: { users: UserRow[] }) {
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <KycStatusBadge status={u.kyc_status} />
-                </td>
-                <td className="px-4 py-3">
                   <StatusBadge status={u.status} />
                 </td>
               </tr>
             ))}
             {rows.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-8 text-center text-text-secondary">
+                <td colSpan={8} className="px-4 py-8 text-center text-text-secondary">
                   No users match that filter.
                 </td>
               </tr>

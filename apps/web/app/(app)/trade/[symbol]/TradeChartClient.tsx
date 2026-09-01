@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { CandleChart } from "@/components/CandleChart";
 import { useLiveTickers } from "@/hooks/useLiveTickers";
 import { FormField, inputClass } from "@/components/FormField";
+import { SecretInput } from "@/components/SecretInput";
 import { Button, ButtonLink } from "@/components/ui";
 import { formatUsdt, formatPct } from "@/lib/format";
 import { settlementOf } from "@/components/SettlementValue";
@@ -48,7 +49,13 @@ export function TradeChartClient({
   const t = tickers[symbol];
   const up = (t?.priceChangePercent ?? 0) >= 0;
 
-  const [panel, setPanel] = useState<"none" | "buy" | "sell">("none");
+  // A sell signal deep-links here with ?action=sell so the close ticket is
+  // already open — otherwise the user lands on the buy panel having been
+  // told to sell.
+  const searchParams = useSearchParams();
+  const [panel, setPanel] = useState<"none" | "buy" | "sell">(
+    searchParams.get("action") === "sell" && openPosition ? "sell" : "none"
+  );
   const [amount, setAmount] = useState("");
   const [transactionKey, setTransactionKey] = useState("");
   const [loading, setLoading] = useState(false);
@@ -57,9 +64,10 @@ export function TradeChartClient({
 
   const parsedAmount = parseFloat(amount);
   const amountValid = !Number.isNaN(parsedAmount) && parsedAmount >= minAmount && parsedAmount <= walletBalance;
-  const positionHere = openPosition && openPosition.symbol === symbol ? openPosition : null;
   const positionElsewhere = openPosition && openPosition.symbol !== symbol ? openPosition : null;
   const coin = symbol.replace("USDT", "");
+  // The coin actually held, which may differ from the chart on screen.
+  const heldCoin = openPosition ? openPosition.symbol.replace("USDT", "") : null;
   // Same formula the server settles with, so the ticket agrees with the payout.
   const settleValue = openPosition
     ? settlementOf(
@@ -284,13 +292,13 @@ export function TradeChartClient({
               >
                 Buy {coin}
               </Button>
-              <Button variant="danger" size="lg" onClick={() => setPanel("sell")} disabled={!positionHere}>
-                Sell {coin}
+              <Button variant="danger" size="lg" onClick={() => setPanel("sell")} disabled={!openPosition}>
+                Sell {heldCoin ?? coin}
               </Button>
             </div>
-            {positionHere && (
+            {openPosition && (
               <p className="mt-2.5 text-center text-[10px] text-text-tertiary">
-                You hold {formatUsdt(positionHere.amount, { withSymbol: true })} in {coin} · settles at{" "}
+                You hold {formatUsdt(openPosition.amount, { withSymbol: true })} in {heldCoin} · settles at{" "}
                 <span className="mono-num font-bold text-text-secondary">
                   {formatUsdt(settleValue, { withSymbol: true })}
                 </span>
@@ -343,14 +351,7 @@ export function TradeChartClient({
             </div>
 
             <FormField label="Transaction key">
-              <input
-                required
-                type="password"
-                className={inputClass}
-                value={transactionKey}
-                onChange={(e) => setTransactionKey(e.target.value)}
-                placeholder="Your transaction key"
-              />
+              <SecretInput required value={transactionKey} onChange={setTransactionKey} />
             </FormField>
 
             {error && <p className="text-xs font-medium text-negative">{error}</p>}
@@ -374,15 +375,15 @@ export function TradeChartClient({
           </form>
         )}
 
-        {panel === "sell" && positionHere && (
+        {panel === "sell" && openPosition && (
           <div className="space-y-3">
-            <p className="text-sm font-bold text-negative">Sell {coin}</p>
+            <p className="text-sm font-bold text-negative">Sell {heldCoin}</p>
             <div className="divide-y divide-border overflow-hidden rounded-xl border border-border text-xs">
-              <Row label="Staked" value={formatUsdt(positionHere.amount, { withSymbol: true })} />
+              <Row label="Staked" value={formatUsdt(openPosition.amount, { withSymbol: true })} />
               <Row
                 label="Confirmed return"
-                value={formatUsdt(positionHere.accrued, { withSymbol: true })}
-                valueClass={positionHere.accrued > 0 ? "text-positive" : undefined}
+                value={formatUsdt(openPosition.accrued, { withSymbol: true })}
+                valueClass={openPosition.accrued > 0 ? "text-positive" : undefined}
               />
               <Row label="Credited to wallet" value={formatUsdt(settleValue, { withSymbol: true })} />
             </div>
@@ -398,7 +399,7 @@ export function TradeChartClient({
                 variant="danger"
                 size="lg"
                 className="flex-1"
-                onClick={() => handleClosePosition(positionHere)}
+                onClick={() => handleClosePosition(openPosition)}
                 disabled={loading}
               >
                 {loading ? "Closing…" : "Confirm close"}

@@ -28,15 +28,12 @@ export async function POST(req: NextRequest) {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("transaction_key_hash, kyc_status")
+    .select("transaction_key_hash")
     .eq("id", user.id)
     .single();
 
   if (!verifyTransactionKey(parsed.data.transaction_key, profile?.transaction_key_hash)) {
     return NextResponse.json({ error: "Incorrect transaction key." }, { status: 403 });
-  }
-  if (profile?.kyc_status !== "approved") {
-    return NextResponse.json({ error: "Verify your identity before trading." }, { status: 403 });
   }
 
   let tradedSymbol = parsed.data.symbol?.toUpperCase() ?? null;
@@ -63,7 +60,6 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     const messages: Record<string, string> = {
-      kyc_required: "Verify your identity before trading.",
       insufficient_balance: "Your wallet balance is too low for that amount.",
       invalid_tier: "That plan isn't available.",
       invalid_amount: "Enter a valid amount.",

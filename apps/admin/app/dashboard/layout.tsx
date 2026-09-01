@@ -8,7 +8,6 @@ const navItems = [
   { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/notifications", label: "Notifications" },
   { href: "/dashboard/users", label: "Users" },
-  { href: "/dashboard/kyc", label: "KYC" },
   { href: "/dashboard/deposits", label: "Deposits" },
   { href: "/dashboard/investments", label: "Investments" },
   { href: "/dashboard/withdrawals", label: "Withdrawals" },

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
+import { SecretInput } from "@/components/SecretInput";
 import { isValidTransactionKey } from "@/lib/transactionKey";
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
@@ -173,20 +174,14 @@ export function AccountForms({ initialFullName, initialPhone }: { initialFullNam
         </p>
         <form onSubmit={handleKeySubmit} className="space-y-3">
           <FormField label="Current transaction key">
-            <input
-              required
-              type="password"
-              className={inputClass}
-              value={currentKey}
-              onChange={(e) => setCurrentKey(e.target.value)}
-            />
+            <SecretInput required value={currentKey} onChange={setCurrentKey} placeholder="Current key" />
           </FormField>
           <div className="grid gap-3 sm:grid-cols-2">
             <FormField label="New transaction key">
-              <input required className={inputClass} value={newKey} onChange={(e) => setNewKey(e.target.value)} />
+              <SecretInput required value={newKey} onChange={setNewKey} placeholder="New key" />
             </FormField>
             <FormField label="Confirm new key">
-              <input required className={inputClass} value={confirmKey} onChange={(e) => setConfirmKey(e.target.value)} />
+              <SecretInput required value={confirmKey} onChange={setConfirmKey} placeholder="Re-enter key" />
             </FormField>
           </div>
           {keyMsg && <Notice text={keyMsg.text} tone={keyMsg.tone} />}

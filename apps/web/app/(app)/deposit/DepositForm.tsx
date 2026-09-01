@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
+import { SecretInput } from "@/components/SecretInput";
 import { TelegramButton } from "@/components/TelegramButton";
 import { isValidTxHash } from "@/lib/tron-address";
 
@@ -271,14 +272,7 @@ export function DepositForm({
               />
             </FormField>
             <FormField label="Transaction key" hint="The key you set at signup, required to authorize deposits.">
-              <input
-                required
-                type="password"
-                className={inputClass}
-                value={transactionKey}
-                onChange={(e) => setTransactionKey(e.target.value)}
-                placeholder="Your transaction key"
-              />
+              <SecretInput required value={transactionKey} onChange={setTransactionKey} />
             </FormField>
           </div>
           {error && <p className="mt-2 text-sm text-negative">{error}</p>}

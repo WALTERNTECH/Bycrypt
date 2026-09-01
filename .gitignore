@@ -34,3 +34,4 @@ android/twa/app/build/
 android/twa/.gradle/
 android/twa/build/
 android/twa/local.properties
+*.tsbuildinfo

@@ -20,7 +20,14 @@ function dismissKey(bucket: number): string {
  * an ad rather than a trading call. The accent is green on a buy and red
  * on a sell, so the side is legible before any text is read.
  */
-export function CoinSuggestion({ rows }: { rows: { symbol: string; display_name: string }[] }) {
+export function CoinSuggestion({
+  rows,
+  heldSymbol = null
+}: {
+  rows: { symbol: string; display_name: string }[];
+  /** Symbol of the open position, if any — the signal is personalised to it. */
+  heldSymbol?: string | null;
+}) {
   const symbols = rows.map((r) => r.symbol);
   const { tickers } = useLiveTickers(symbols);
   const [bucket, setBucket] = useState(() => currentBucket());
@@ -42,7 +49,7 @@ export function CoinSuggestion({ rows }: { rows: { symbol: string; display_name:
 
   if (dismissed) return null;
 
-  const signal = pickSignal(rows, tickers);
+  const signal = pickSignal(rows, tickers, heldSymbol);
   if (!signal) return null;
 
   const isBuy = signal.side === "BUY";
@@ -109,7 +116,7 @@ export function CoinSuggestion({ rows }: { rows: { symbol: string; display_name:
         </div>
 
         <Link
-          href={`/trade/${signal.symbol}`}
+          href={`/trade/${signal.symbol}${isBuy ? "" : "?action=sell"}`}
           className={buttonStyles({ variant: isBuy ? "success" : "danger", size: "sm" })}
         >
           {isBuy ? "Buy" : "Sell"}

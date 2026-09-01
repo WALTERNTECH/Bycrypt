@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { TelegramButton } from "./TelegramButton";
-import { KycBadge } from "./KycBadge";
+import { Logo } from "./Logo";
 
 export async function TopBar() {
   const supabase = createClient();
@@ -11,7 +11,7 @@ export async function TopBar() {
 
   const [{ data: profile }, { data: config }] = await Promise.all([
     user
-      ? supabase.from("profiles").select("full_name, kyc_status").eq("id", user.id).maybeSingle()
+      ? supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
     supabase.from("platform_config").select("value").eq("key", "telegram_support_url").maybeSingle()
   ]);
@@ -38,8 +38,13 @@ export async function TopBar() {
         </span>
       </Link>
 
+      {/* Wordmark sits centre-right now that the verification chip is gone,
+          so the bar doesn't read as a control with a gap beside it. */}
+      <Link href="/" aria-label="Home" className="hidden sm:block">
+        <Logo />
+      </Link>
+
       <div className="flex shrink-0 items-center gap-2">
-        <KycBadge status={profile?.kyc_status ?? "unverified"} />
         <TelegramButton url={telegramUrl} />
       </div>
     </div>

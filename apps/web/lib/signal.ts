@@ -3,21 +3,21 @@ import type { Ticker } from "@/lib/binance";
 /**
  * The automated trading signal.
  *
- * Two rules, from how the desk actually wants it to behave:
+ * The signal is personalised to what the user can actually do, because a
+ * call they can't act on is worse than no call:
  *
- *  1. The side follows the market, not a bias. A coin that's climbing
- *     produces a BUY; a coin that's falling produces a SELL. The old
- *     version only ever ranked by best performer and only ever said
- *     "Buy", so it could never call a falling market.
+ *   No open position  — they can only buy, so the signal picks from
+ *                       coins that are climbing and says BUY.
+ *   Position open     — they can only close, so the signal watches the
+ *                       coin they hold and says SELL when it turns down.
  *
- *  2. The coin is chosen at random rather than always being the top
- *     mover, so the signal rotates across the board instead of parking
- *     on whatever happens to be leading that day.
+ * That still produces both sides over time and rotates across the board
+ * via a random pick, but it can never tell someone to sell a coin they
+ * don't own — which is exactly what left the Sell button dead on arrival.
  *
- * The randomness is seeded by a time bucket rather than Math.random, so
- * the pick is stable for everyone within the same window instead of
- * changing on every render or differing between two users looking at the
- * same screen a second apart.
+ * The randomness is seeded from a time bucket rather than Math.random,
+ * so the pick is stable for everyone inside the same window instead of
+ * changing on every render.
  */
 
 export type SignalSide = "BUY" | "SELL";
@@ -47,27 +47,45 @@ export function currentBucket(now: number = Date.now()): number {
 /**
  * Picks the signal for the current window.
  *
- * `rows` supplies display names; `tickers` supplies live movement. Any
- * coin without a ticker yet is skipped rather than guessed at.
+ * `heldSymbol` is the coin of the user's open position, if any. Pass null
+ * when nothing is open.
  */
 export function pickSignal(
   rows: { symbol: string; display_name: string }[],
   tickers: Record<string, Ticker>,
+  heldSymbol: string | null = null,
   now: number = Date.now()
 ): Signal | null {
-  const candidates = rows.filter((r) => tickers[r.symbol]);
+  const nameOf = (sym: string) => rows.find((r) => r.symbol === sym)?.display_name ?? sym.replace("USDT", "");
+
+  // Holding something: the only available action is closing it, so the
+  // call is about that coin and turns to SELL when it moves against them.
+  if (heldSymbol) {
+    const t = tickers[heldSymbol];
+    if (!t) return null;
+    return {
+      symbol: heldSymbol,
+      displayName: nameOf(heldSymbol),
+      side: t.priceChangePercent < 0 ? "SELL" : "BUY",
+      changePct: t.priceChangePercent
+    };
+  }
+
+  // Nothing open: only a buy is possible, so choose among risers.
+  const candidates = rows.filter((r) => {
+    const t = tickers[r.symbol];
+    return t && t.priceChangePercent > 0;
+  });
   if (candidates.length === 0) return null;
 
   const bucket = currentBucket(now);
   const pick = candidates[Math.floor(hash(bucket) * candidates.length) % candidates.length];
   const t = tickers[pick.symbol];
-  const changePct = t.priceChangePercent;
 
   return {
     symbol: pick.symbol,
     displayName: pick.display_name,
-    // Flat counts as a buy — a dead-flat coin isn't a reason to sell.
-    side: changePct >= 0 ? "BUY" : "SELL",
-    changePct
+    side: "BUY",
+    changePct: t.priceChangePercent
   };
 }

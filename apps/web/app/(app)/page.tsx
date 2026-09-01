@@ -55,7 +55,9 @@ export default async function HomePage() {
         />
       )}
 
-      {!position && <CoinSuggestion rows={symbols ?? []} />}
+      {/* Shown in both states: with nothing open the call is a buy, with a
+          position open it watches that coin and turns into a sell. */}
+      <CoinSuggestion rows={symbols ?? []} heldSymbol={position?.traded_symbol ?? null} />
 
       <div className="mt-7">
         <SectionHeading

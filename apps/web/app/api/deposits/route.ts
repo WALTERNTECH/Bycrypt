@@ -43,14 +43,11 @@ export async function POST(req: NextRequest) {
   const admin = createAdminClient();
   const { data: profile } = await admin
     .from("profiles")
-    .select("full_name, transaction_key_hash, kyc_status")
+    .select("full_name, transaction_key_hash")
     .eq("id", user.id)
     .single();
   if (!verifyTransactionKey(parsed.data.transaction_key, profile?.transaction_key_hash)) {
     return NextResponse.json({ error: "Incorrect transaction key." }, { status: 403 });
-  }
-  if (profile?.kyc_status !== "approved") {
-    return NextResponse.json({ error: "Verify your identity before depositing." }, { status: 403 });
   }
 
   const txHash = normalizeTxHash(parsed.data.tx_hash);

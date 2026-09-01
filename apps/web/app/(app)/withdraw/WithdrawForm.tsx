@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
+import { SecretInput } from "@/components/SecretInput";
 import { TelegramButton } from "@/components/TelegramButton";
 import { isValidTronAddress } from "@/lib/tron-address";
 import { formatUsdt } from "@/lib/format";
@@ -112,14 +113,7 @@ export function WithdrawForm({ walletBalance, telegramUrl }: { walletBalance: nu
         </FormField>
 
         <FormField label="Transaction key" hint="The key you set at signup, required to authorize withdrawals.">
-          <input
-            required
-            type="password"
-            className={inputClass}
-            value={transactionKey}
-            onChange={(e) => setTransactionKey(e.target.value)}
-            placeholder="Your transaction key"
-          />
+          <SecretInput required value={transactionKey} onChange={setTransactionKey} />
         </FormField>
 
         {error && <p className="text-sm text-negative">{error}</p>}

@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { KycPrompt } from "@/components/KycPrompt";
 import { TradeMarketList } from "./TradeMarketList";
 
 export default async function TradePage() {
@@ -9,7 +8,7 @@ export default async function TradePage() {
   } = await supabase.auth.getUser();
 
   const [{ data: profile }, { data: symbols }] = await Promise.all([
-    supabase.from("profiles").select("kyc_status, wallet_balance").eq("id", user!.id).single(),
+    supabase.from("profiles").select("wallet_balance").eq("id", user!.id).single(),
     supabase.from("market_symbols").select("symbol, display_name").eq("is_active", true).order("sort_order")
   ]);
 
@@ -18,11 +17,7 @@ export default async function TradePage() {
       <h1 className="text-xl font-extrabold text-text-primary">Trade</h1>
       <p className="mt-1 text-xs text-text-secondary">Pick a market to view its chart and place an order.</p>
       <div className="mt-4">
-        {profile?.kyc_status === "approved" ? (
-          <TradeMarketList rows={symbols ?? []} walletBalance={parseFloat(String(profile?.wallet_balance ?? 0))} />
-        ) : (
-          <KycPrompt status={profile?.kyc_status ?? "unverified"} action="trade" />
-        )}
+        <TradeMarketList rows={symbols ?? []} walletBalance={parseFloat(String(profile?.wallet_balance ?? 0))} />
       </div>
     </div>
   );
