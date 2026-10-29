@@ -4,26 +4,34 @@ const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      // Matches the web app: a light exchange interface modelled on Bybit.
+      // White carries the structure, near-black is the voice, amber means
+      // action and nothing else. Green and red stay as market semantics.
       colors: {
-        base: "#0A0D12",
-        surface: "#12161C",
-        "surface-2": "#191E26",
-        "surface-3": "#212832",
+        base: "#FFFFFF",
+        surface: "#FFFFFF",
+        "surface-2": "#F7F7F8",
+        "surface-3": "#EFEFF2",
         // legacy aliases so existing admin screens keep compiling
-        panel: "#12161C",
-        "panel-2": "#191E26",
-        border: "#232A34",
-        "border-strong": "#333C49",
-        brand: "#F0B90B",
-        "brand-hover": "#FFCD1F",
-        positive: "#0ECB81",
-        negative: "#F6465D",
-        "text-primary": "#EDF0F3",
-        "text-secondary": "#8B95A5",
-        "text-tertiary": "#5D6673",
+        panel: "#FFFFFF",
+        "panel-2": "#F7F7F8",
+        border: "#EAECEF",
+        "border-strong": "#D9DCE1",
+        brand: "#F7A600",
+        "brand-hover": "#FFB92E",
+        "brand-dim": "#FFF7E6",
+        positive: "#20B26C",
+        "positive-dim": "#E8F7F0",
+        negative: "#EF454A",
+        "negative-dim": "#FDECEC",
+        info: "#2F80ED",
+        "info-dim": "#EAF2FD",
+        "text-primary": "#121214",
+        "text-secondary": "#5B5E66",
+        "text-tertiary": "#8A8D94",
         // text on a bright fill — deliberately NOT named "base", which
         // collides with Tailwind's text-base font-size utility
-        ink: "#0A0D12"
+        ink: "#121214"
       },
       fontFamily: {
         sans: ["Inter", "-apple-system", "Segoe UI", "Roboto", "sans-serif"]

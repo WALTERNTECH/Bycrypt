@@ -3,26 +3,25 @@ import Link from "next/link";
 type Variant = "primary" | "success" | "danger" | "secondary" | "ghost";
 type Size = "sm" | "md" | "lg";
 
-// Every control gets: a real fill, an inner top highlight, a border, a
-// drop shadow, and a 1px press translation. That combination is what
-// separates a button from coloured text on a panel.
+// Exchange-style controls: flat fills, no gradients, no inner highlight,
+// and a border only where the fill alone wouldn't read as a control. On a
+// white interface a gradient button looks dated immediately — weight and
+// one saturated fill do the work instead.
+//
+// Press feedback is opacity, not translation. Nothing shifts position,
+// which is what keeps a dense screen feeling stable under the thumb.
 const VARIANTS: Record<Variant, string> = {
-  primary:
-    "bg-gradient-to-b from-brand-hover to-brand text-ink border-[#C9990A] shadow-btn-brand hover:from-[#FFD84D] hover:to-[#F7C21A]",
-  success:
-    "bg-gradient-to-b from-[#18DC90] to-positive text-ink border-[#0BA469] shadow-btn-positive hover:from-[#2BE79D] hover:to-[#12D689]",
-  danger:
-    "bg-gradient-to-b from-[#FF5D72] to-negative text-white border-[#C9384B] shadow-btn-negative hover:from-[#FF7285] hover:to-[#F85068]",
-  secondary:
-    "bg-gradient-to-b from-surface-3 to-surface-2 text-text-primary border-border-strong shadow-btn hover:from-[#262E3A] hover:to-[#1E242E]",
-  ghost:
-    "bg-transparent text-text-secondary border-transparent shadow-none hover:bg-surface-2 hover:text-text-primary"
+  primary: "bg-brand text-ink border-transparent hover:bg-brand-hover",
+  success: "bg-positive text-white border-transparent hover:bg-[#1BA062]",
+  danger: "bg-negative text-white border-transparent hover:bg-[#DC3F44]",
+  secondary: "bg-surface-2 text-text-primary border-border hover:bg-surface-3",
+  ghost: "bg-transparent text-text-secondary border-transparent hover:bg-surface-2 hover:text-text-primary"
 };
 
 const SIZES: Record<Size, string> = {
-  sm: "h-8 px-3 text-xs gap-1.5 rounded-lg",
-  md: "h-10 px-4 text-sm gap-2 rounded-lg",
-  lg: "h-12 px-5 text-[15px] gap-2 rounded-xl"
+  sm: "h-7 px-2.5 text-[12px] gap-1.5 rounded-md",
+  md: "h-9 px-3.5 text-[13px] gap-1.5 rounded-lg",
+  lg: "h-11 px-4 text-[14px] gap-2 rounded-lg"
 };
 
 export function buttonStyles({
@@ -31,11 +30,11 @@ export function buttonStyles({
   fullWidth = false
 }: { variant?: Variant; size?: Size; fullWidth?: boolean } = {}) {
   return [
-    "inline-flex items-center justify-center border font-bold leading-none",
-    "transition-all duration-150 select-none",
-    "active:translate-y-px active:shadow-none",
-    "disabled:cursor-not-allowed disabled:opacity-40 disabled:active:translate-y-0",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 focus-visible:ring-offset-base",
+    "inline-flex items-center justify-center border font-semibold leading-none",
+    "transition-colors duration-100 select-none",
+    "active:opacity-80",
+    "disabled:cursor-not-allowed disabled:opacity-40",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/50 focus-visible:ring-offset-1 focus-visible:ring-offset-base",
     VARIANTS[variant],
     SIZES[size],
     fullWidth ? "w-full" : ""

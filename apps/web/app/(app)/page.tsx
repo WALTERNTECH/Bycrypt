@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { CoinGrid } from "@/components/CoinGrid";
-import { CoinSuggestion } from "@/components/CoinSuggestion";
+import { PositionChart } from "@/components/PositionChart";
 import { LiveBalanceCard } from "@/components/LiveBalanceCard";
 import { OpenPositionCard } from "@/components/OpenPositionCard";
 import { SectionHeading } from "@/components/ui";
@@ -17,7 +17,7 @@ export default async function HomePage() {
     supabase.from("profiles").select("wallet_balance").eq("id", user!.id).single(),
     supabase
       .from("investments")
-      .select("id, amount, accrued_return, traded_symbol, status")
+      .select("id, amount, accrued_return, traded_symbol, status, entry_price, start_date")
       .eq("user_id", user!.id)
       .neq("status", "withdrawn")
       .order("created_at", { ascending: false }),
@@ -28,7 +28,9 @@ export default async function HomePage() {
     id: i.id as string,
     amount: parseFloat(String(i.amount)),
     accrued: parseFloat(String(i.accrued_return)),
-    traded_symbol: i.traded_symbol as string | null
+    traded_symbol: i.traded_symbol as string | null,
+    entry_price: i.entry_price === null || i.entry_price === undefined ? null : parseFloat(String(i.entry_price)),
+    start_date: i.start_date as string
   }));
   const walletBalance = parseFloat(String(profile?.wallet_balance ?? 0));
   const position = openPositions[0];
@@ -55,9 +57,21 @@ export default async function HomePage() {
         />
       )}
 
-      {/* Shown in both states: with nothing open the call is a buy, with a
-          position open it watches that coin and turns into a sell. */}
-      <CoinSuggestion rows={symbols ?? []} heldSymbol={position?.traded_symbol ?? null} />
+      {/* Replaces the old coin-recommendation card. This reports on money
+          actually at stake rather than suggesting a trade, so it only
+          appears when there is a position to report on. */}
+      {position?.traded_symbol && (
+        <PositionChart
+          symbol={position.traded_symbol}
+          displayName={
+            (symbols ?? []).find((m) => m.symbol === position.traded_symbol)?.display_name ??
+            position.traded_symbol.replace("USDT", "")
+          }
+          principal={position.amount}
+          entryPrice={position.entry_price}
+          startedAt={position.start_date}
+        />
+      )}
 
       <div className="mt-7">
         <SectionHeading

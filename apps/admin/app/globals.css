@@ -5,13 +5,13 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
 body {
-  background-color: #0a0d12;
-  color: #edf0f3;
+  background-color: #ffffff;
+  color: #121214;
 }
 
 body {
@@ -26,7 +26,7 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2b3139;
+  background: #d9dce1;
   border-radius: 8px;
 }
 

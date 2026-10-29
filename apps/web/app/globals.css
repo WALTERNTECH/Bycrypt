@@ -7,13 +7,13 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html,
 body {
-  background-color: #0a0d12;
-  color: #edf0f3;
+  background-color: #ffffff;
+  color: #121214;
 }
 
 html {
@@ -25,6 +25,7 @@ html {
 }
 
 body {
+  -webkit-overflow-scrolling: touch;
   font-family: "Inter", -apple-system, "Segoe UI", Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -49,8 +50,8 @@ body {
 }
 
 ::selection {
-  background: #f0b90b;
-  color: #0a0d12;
+  background: #ffe9b8;
+  color: #121214;
 }
 
 /* thin, exchange-style scrollbars */
@@ -62,11 +63,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #252c37;
+  background: #d9dce1;
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #333c49;
+  background: #c2c6cd;
 }
 
 .mono-num {
@@ -87,9 +88,9 @@ button {
 input:-webkit-autofill,
 input:-webkit-autofill:hover,
 input:-webkit-autofill:focus {
-  -webkit-text-fill-color: #edf0f3;
-  -webkit-box-shadow: 0 0 0 1000px #191e26 inset;
-  caret-color: #edf0f3;
+  -webkit-text-fill-color: #121214;
+  -webkit-box-shadow: 0 0 0 1000px #f7f7f8 inset;
+  caret-color: #121214;
   transition: background-color 9999s ease-out 0s;
 }
 
@@ -134,4 +135,42 @@ input:-webkit-autofill:focus {
    stands down rather than covering the control the user is reaching for. */
 body:has([data-confirm-open]) [data-install-prompt] {
   display: none;
+}
+
+/* Printing the statement.
+   The app chrome has no meaning on paper, so the header, tab bar, risk
+   footer and the page's own action buttons are dropped and the statement
+   becomes the whole document. Colours are forced to print accurately —
+   browsers strip backgrounds by default, which would turn the up/down
+   figures into unlabelled grey. */
+@media print {
+  header,
+  nav,
+  .print\:hidden {
+    display: none !important;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+  }
+
+  main {
+    padding: 0 !important;
+    max-width: none !important;
+  }
+
+  #krypton-statement {
+    border: 0 !important;
+    border-radius: 0 !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  @page {
+    margin: 14mm;
+  }
 }

@@ -17,7 +17,7 @@ export function FormField({
 }
 
 export const inputClass =
-  "w-full rounded-xl border border-border-strong bg-surface-2 px-3.5 py-3 text-base md:text-sm font-medium text-text-primary placeholder:font-normal placeholder:text-text-tertiary outline-none transition-all duration-150 focus:border-brand focus:bg-surface-3 focus:ring-2 focus:ring-brand/20";
+  "w-full rounded-lg border border-border bg-surface-2 px-3 py-2.5 text-base md:text-[13px] font-medium text-text-primary placeholder:font-normal placeholder:text-text-tertiary outline-none transition-colors duration-100 focus:border-brand focus:bg-surface focus:ring-1 focus:ring-brand/30";
 
 export const buttonClass =
-  "inline-flex w-full items-center justify-center gap-2 rounded-xl border border-[#C9990A] bg-gradient-to-b from-brand-hover to-brand py-3 text-sm font-bold leading-none text-ink shadow-btn-brand transition-all duration-150 hover:from-[#FFD84D] hover:to-[#F7C21A] active:translate-y-px active:shadow-none disabled:cursor-not-allowed disabled:opacity-40 disabled:active:translate-y-0";
+  "inline-flex w-full items-center justify-center gap-2 rounded-lg border border-transparent bg-brand py-3 text-[14px] font-semibold leading-none text-ink transition-colors duration-100 hover:bg-brand-hover active:opacity-80 disabled:cursor-not-allowed disabled:opacity-40";

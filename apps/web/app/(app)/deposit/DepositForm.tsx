@@ -20,7 +20,7 @@ export function DepositForm({
   telegramUrl: string;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState<1 | "generating" | 3 | 4>(1);
+
   const [amount, setAmount] = useState("");
   const network = "BTC";
   const [txHash, setTxHash] = useState("");
@@ -57,14 +57,6 @@ export function DepositForm({
       clearInterval(id);
     };
   }, []);
-
-  // Brief "generating address" beat before revealing it — feels like a
-  // real provisioning step rather than an instant static reveal.
-  useEffect(() => {
-    if (step !== "generating") return;
-    const timer = setTimeout(() => setStep(3), 1300);
-    return () => clearTimeout(timer);
-  }, [step]);
 
   useEffect(() => {
     if (!result || result.status !== "pending_verification") return;
@@ -152,18 +144,6 @@ export function DepositForm({
     );
   }
 
-  if (step === "generating") {
-    return (
-      <div className="rounded-2xl border border-border bg-surface shadow-card p-8 text-center">
-        <div className="flex justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
-        </div>
-        <p className="mt-4 text-sm font-semibold text-text-primary">Generating your wallet deposit address…</p>
-        <p className="mt-1 text-xs text-text-secondary">One moment.</p>
-      </div>
-    );
-  }
-
   const amountValid = parseFloat(amount) >= minDeposit;
 
   return (
@@ -194,21 +174,10 @@ export function DepositForm({
             </p>
           )}
         </div>
-        {step === 1 && (
-          <button
-            onClick={() => amountValid && setStep("generating")}
-            disabled={!amountValid}
-            className="mt-3 text-sm font-semibold text-brand disabled:opacity-50"
-          >
-            Continue →
-          </button>
-        )}
       </div>
 
-      {/* Step 2 — network */}
       {/* Step 2 — address */}
-      {(step === 3 || step === 4) && (
-        <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
+      <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
           <p className="text-sm font-semibold text-text-primary">2. Send BTC (Bitcoin Network)</p>
           <p className="mt-1 text-xs text-text-secondary">
             Send only BTC on the Bitcoin network to this address. Funds sent on another network, or in
@@ -248,19 +217,10 @@ export function DepositForm({
             </div>
           )}
 
-          <button
-            onClick={() => setStep(4)}
-            disabled={addressNotReady}
-            className="mt-4 text-sm font-semibold text-brand disabled:opacity-50"
-          >
-            I've sent the funds →
-          </button>
         </div>
-      )}
 
       {/* Step 3 — tx id + transaction key */}
-      {step === 4 && (
-        <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-surface shadow-card p-4">
+      <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-surface shadow-card p-4">
           <p className="text-sm font-semibold text-text-primary">3. Verify your deposit</p>
           <p className="mt-1 text-xs text-text-secondary">
             We attempt on-chain verification automatically, and Krypton Support also confirms every
@@ -286,7 +246,6 @@ export function DepositForm({
             {loading ? "Verifying…" : "Verify Deposit"}
           </button>
         </form>
-      )}
     </div>
   );
 }

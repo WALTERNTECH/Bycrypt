@@ -13,20 +13,23 @@ const items = [
 ];
 
 /**
- * White tab bar, matching the header — the app chrome is light at both
- * ends and the trading surface sits between them.
+ * The tab bar.
  *
- * On a light bar the active state can't lean on the brand accent alone:
- * yellow on white is close to illegible. So the selected tab gets a
- * tinted pill and darker, heavier text, and the accent colour is carried
- * by the rail above it where it has a white field to sit against.
+ * Deliberately plain: a hairline top border, white fill, and nothing
+ * else. The previous version carried a tinted pill and a coloured rail
+ * per tab, which is what made it read as decorated rather than designed.
+ *
+ * Selection is shown the way an exchange shows it — the active tab goes
+ * near-black and heavier, the rest stay grey. On a white interface that
+ * contrast is stronger than any accent colour, and it leaves the amber
+ * free to mean "this is the action" everywhere else in the app.
  */
 export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-header-border bg-header pb-[env(safe-area-inset-bottom)] shadow-[0_-1px_0_rgba(0,0,0,0.04),0_-8px_24px_-12px_rgba(0,0,0,0.18)]">
-      <div className="mx-auto flex max-w-lg items-stretch justify-around px-1">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-base pb-[env(safe-area-inset-bottom)]">
+      <div className="mx-auto flex max-w-lg items-stretch justify-around">
         {items.map((item) => {
           const active = item.match(pathname);
           const Icon = item.icon;
@@ -35,21 +38,16 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className="relative flex flex-1 flex-col items-center gap-1 py-2.5 transition-colors"
+              className="flex flex-1 flex-col items-center gap-1 py-2 transition-colors"
             >
-              <span
-                className={`absolute inset-x-3 top-0 h-[3px] rounded-full transition-opacity ${
-                  active ? "bg-brand opacity-100" : "opacity-0"
-                }`}
+              <Icon
+                className={`h-[20px] w-[20px] ${active ? "text-text-primary" : "text-text-tertiary"}`}
               />
               <span
-                className={`flex h-8 w-full max-w-[56px] items-center justify-center rounded-lg transition-colors ${
-                  active ? "bg-header-3" : ""
+                className={`text-[10px] leading-none ${
+                  active ? "font-semibold text-text-primary" : "font-medium text-text-tertiary"
                 }`}
               >
-                <Icon className={`h-[19px] w-[19px] ${active ? "text-header-text" : "text-header-muted"}`} />
-              </span>
-              <span className={`text-[10px] font-bold ${active ? "text-header-text" : "text-header-muted"}`}>
                 {item.label}
               </span>
             </Link>

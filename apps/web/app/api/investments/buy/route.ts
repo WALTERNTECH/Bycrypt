@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { pickTopGainer } from "@/lib/pickTopGainer";
+import { fetchTickers } from "@/lib/binance";
 import { verifyTransactionKey } from "@/lib/transactionKey";
 
 const bodySchema = z.object({
@@ -52,10 +53,27 @@ export async function POST(req: NextRequest) {
     tradedSymbol = await pickTopGainer((symbols ?? []).map((s) => s.symbol));
   }
 
+  // Record what the coin cost at the moment the position opened, so the
+  // position chart has a real anchor rather than a guess made later. It is
+  // reference data only — settlement recomputes profit from live prices,
+  // so this value can never move money.
+  let entryPrice: number | null = null;
+  try {
+    if (tradedSymbol) {
+      const t = await fetchTickers([tradedSymbol]);
+      const price = t[tradedSymbol]?.lastPrice;
+      if (Number.isFinite(price) && price > 0) entryPrice = price;
+    }
+  } catch {
+    // The position still opens; the chart falls back to the first candle
+    // after start_date rather than blocking a trade on a price lookup.
+  }
+
   const { data: investmentId, error } = await supabase.rpc("buy_investment", {
     p_tier_id: parsed.data.tier_id,
     p_amount: parsed.data.amount,
-    p_traded_symbol: tradedSymbol
+    p_traded_symbol: tradedSymbol,
+    p_entry_price: entryPrice
   });
 
   if (error) {
