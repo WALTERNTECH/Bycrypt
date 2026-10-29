@@ -9,10 +9,6 @@ import { isValidTxid } from "@/lib/btc-address";
 
 const PLACEHOLDER_ADDRESS = "REPLACE_WITH_CLIENT_BTC_WALLET_ADDRESS";
 
-// Bitcoin mainnet only. Sending BTC over another chain, or a different
-// asset to a Bitcoin address, loses the funds permanently — so there is
-// deliberately nothing else to pick here.
-const NETWORKS = [{ value: "BTC", label: "Bitcoin (BTC)", enabled: true }] as const;
 
 export function DepositForm({
   depositAddress,
@@ -24,9 +20,9 @@ export function DepositForm({
   telegramUrl: string;
 }) {
   const router = useRouter();
-  const [step, setStep] = useState<1 | 2 | "generating" | 3 | 4>(1);
+  const [step, setStep] = useState<1 | "generating" | 3 | 4>(1);
   const [amount, setAmount] = useState("");
-  const [network, setNetwork] = useState<string>("BTC");
+  const network = "BTC";
   const [txHash, setTxHash] = useState("");
   const [transactionKey, setTransactionKey] = useState("");
   const [copied, setCopied] = useState(false);
@@ -200,7 +196,7 @@ export function DepositForm({
         </div>
         {step === 1 && (
           <button
-            onClick={() => amountValid && setStep(2)}
+            onClick={() => amountValid && setStep("generating")}
             disabled={!amountValid}
             className="mt-3 text-sm font-semibold text-brand disabled:opacity-50"
           >
@@ -210,37 +206,10 @@ export function DepositForm({
       </div>
 
       {/* Step 2 — network */}
-      {(step === 2 || step === 3 || step === 4) && (
-        <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
-          <p className="text-sm font-semibold text-text-primary">2. Choose network</p>
-          <p className="mt-1 text-xs text-text-secondary">Bitcoin mainnet is the only supported network.</p>
-          <div className="mt-3 grid gap-2">
-            {NETWORKS.map((n) => (
-              <button
-                key={n.value}
-                disabled={!n.enabled}
-                onClick={() => setNetwork(n.value)}
-                className={`flex items-center justify-between rounded-lg border px-3.5 py-3 text-left transition-colors ${
-                  network === n.value ? "border-brand bg-brand/10" : "border-border"
-                } ${!n.enabled ? "cursor-not-allowed opacity-40" : "hover:border-border"}`}
-              >
-                <span className="text-sm font-semibold text-text-primary">{n.label}</span>
-                {!n.enabled && <span className="text-[10px] font-medium text-text-secondary">Coming soon</span>}
-              </button>
-            ))}
-          </div>
-          {step === 2 && (
-            <button onClick={() => setStep("generating")} className="mt-3 text-sm font-semibold text-brand">
-              Continue →
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Step 3 — address */}
+      {/* Step 2 — address */}
       {(step === 3 || step === 4) && (
         <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
-          <p className="text-sm font-semibold text-text-primary">3. Send BTC (Bitcoin Network)</p>
+          <p className="text-sm font-semibold text-text-primary">2. Send BTC (Bitcoin Network)</p>
           <p className="mt-1 text-xs text-text-secondary">
             Send only BTC on the Bitcoin network to this address. Funds sent on another network, or in
             another asset, cannot be recovered.
@@ -289,10 +258,10 @@ export function DepositForm({
         </div>
       )}
 
-      {/* Step 4 — tx hash + transaction key */}
+      {/* Step 3 — tx id + transaction key */}
       {step === 4 && (
         <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-surface shadow-card p-4">
-          <p className="text-sm font-semibold text-text-primary">4. Verify your deposit</p>
+          <p className="text-sm font-semibold text-text-primary">3. Verify your deposit</p>
           <p className="mt-1 text-xs text-text-secondary">
             We attempt on-chain verification automatically, and Krypton Support also confirms every
             deposit by hand — your wallet is credited as soon as either check clears.

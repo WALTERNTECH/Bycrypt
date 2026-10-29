@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { TelegramButton } from "./TelegramButton";
+import { RefreshButton } from "./RefreshButton";
 import { Logo } from "./Logo";
 
 export async function TopBar() {
@@ -45,6 +46,7 @@ export async function TopBar() {
       </Link>
 
       <div className="flex shrink-0 items-center gap-2">
+        <RefreshButton />
         <TelegramButton url={telegramUrl} />
       </div>
     </div>
