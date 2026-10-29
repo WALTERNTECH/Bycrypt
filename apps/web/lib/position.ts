@@ -61,7 +61,16 @@ export function positionState(input: PositionInput): PositionState {
 
   // A granted return is a floor on what closing pays, not an addition to
   // it — otherwise a position could be paid its market gain twice.
-  const settles = accrued > 0 ? Math.max(value, principal + accrued) : value;
+  //
+  // Positions opened before this change carry neither an entry price nor
+  // a close-at target, and they were opened under rules where profit was
+  // floored at zero and the stake could not be lost. Settlement is signed
+  // now, which would put money already committed at a risk its owner
+  // never agreed to — so a legacy position keeps the floor it was opened
+  // under. New positions always carry a target, so this cannot catch one.
+  const legacy = input.entryPrice === null && (input.targetGainPct ?? null) === null;
+  const floor = legacy ? principal + Math.max(accrued, 0) : accrued > 0 ? principal + accrued : null;
+  const settles = floor === null ? value : Math.max(value, floor);
 
   const target = input.targetGainPct ?? null;
   // The epsilon is not a fudge. A price of entry x 1.005 lands on
