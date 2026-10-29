@@ -37,45 +37,36 @@ export function RegisterFlow() {
     }
 
     setLoading(true);
-    const supabase = createClient();
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    // Created server-side with the service role so the account is
+    // confirmed on creation. Client sign-up would hand back an
+    // unconfirmed user and wait for a mail this project may never send.
+    const res = await fetch("/api/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ full_name: fullName.trim(), email: email.trim(), password })
+    });
+
+    const body = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      setLoading(false);
+      setError(body.error ?? "Could not create the account.");
+      return;
+    }
+
+    // Sign straight in — there is nothing left to confirm.
+    const supabase = createClient();
+    const { error: signInError } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password
     });
 
-    if (signUpError) {
-      setLoading(false);
-      setError(signUpError.message);
-      return;
-    }
-
-    // Email confirmation may be required, in which case there is no
-    // session yet and the seat cannot be claimed until they confirm.
-    const {
-      data: { session }
-    } = await supabase.auth.getSession();
-
-    if (!session) {
-      setLoading(false);
-      setError(
-        "Account created. Confirm the address from the email we just sent, then sign in to finish setup."
-      );
-      return;
-    }
-
-    const { error: claimError } = await supabase.rpc("claim_first_admin", {
-      p_full_name: fullName.trim()
-    });
-
     setLoading(false);
 
-    if (claimError) {
-      setError(
-        claimError.message.includes("admin_already_exists")
-          ? "An admin account already exists. Registration is closed."
-          : "Could not complete setup. Please try signing in."
-      );
+    if (signInError) {
+      setError("Account created. Please sign in.");
+      router.replace("/login");
       return;
     }
 
