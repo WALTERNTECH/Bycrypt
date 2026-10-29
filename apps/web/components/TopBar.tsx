@@ -1,54 +1,101 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { TelegramButton } from "./TelegramButton";
+import { SearchPill } from "./SearchPill";
 import { RefreshButton } from "./RefreshButton";
-import { Logo } from "./Logo";
 
+/**
+ * The app header.
+ *
+ * Laid out the way an exchange lays it out: identity on the left, search
+ * taking the middle, and a row of single-purpose icons on the right.
+ * Everything here is one tap to somewhere — there is no decoration in
+ * this bar, because a header that costs vertical space on a phone has to
+ * earn all of it.
+ */
 export async function TopBar() {
   const supabase = createClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { data: config }] = await Promise.all([
+  const [{ data: profile }, { data: symbols }, { count: unread }] = await Promise.all([
     user
       ? supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
       : Promise.resolve({ data: null }),
-    supabase.from("platform_config").select("value").eq("key", "telegram_support_url").maybeSingle()
+    supabase.from("market_symbols").select("symbol, display_name").eq("is_active", true).order("sort_order"),
+    user
+      ? supabase
+          .from("notifications")
+          .select("*", { count: "exact", head: true })
+          .eq("user_id", user.id)
+          .eq("is_read", false)
+      : Promise.resolve({ count: 0 })
   ]);
 
-  const telegramUrl = config?.value ?? "https://t.me/KRYPTONinv";
   const name = (profile?.full_name || user?.email || "").trim();
   const initial = (name || "?").charAt(0).toUpperCase();
-  const firstName = name.split(/[\s@]/)[0] || "Account";
 
   return (
-    <div className="flex h-16 items-center justify-between gap-2 bg-header px-3 sm:px-5">
-      {/* Identity — a real, tappable control, not a letter floating on the bar */}
+    <div className="flex h-14 items-center gap-2.5 px-3 sm:px-5">
       <Link
         href="/account"
-        aria-label="Account settings"
-        className="flex min-w-0 items-center gap-2.5 rounded-full border border-header-border bg-header-2 py-1 pl-1 pr-3 shadow-sm transition-all duration-150 hover:bg-header-3 active:translate-y-px active:shadow-none"
+        aria-label="Account"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-3 text-[13px] font-bold text-text-primary"
       >
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-header-dark text-sm font-extrabold text-white shadow-sm">
-          {initial}
-        </span>
-        <span className="flex min-w-0 flex-col leading-tight">
-          <span className="truncate text-[13px] font-bold text-header-text">{firstName}</span>
-          <span className="text-[10px] font-medium text-header-muted">View account</span>
-        </span>
+        {initial}
       </Link>
 
-      {/* Wordmark sits centre-right now that the verification chip is gone,
-          so the bar doesn't read as a control with a gap beside it. */}
-      <Link href="/" aria-label="Home" className="hidden sm:block">
-        <Logo />
-      </Link>
+      <SearchPill symbols={symbols ?? []} />
 
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-0.5">
+        <IconLink href="/deposit" label="Deposit address">
+          {/* scan */}
+          <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" strokeLinecap="round" />
+          <path d="M4 12h16" strokeLinecap="round" />
+        </IconLink>
+
+        <IconLink href="/referral" label="Invite friends">
+          <circle cx="9" cy="8" r="3.2" />
+          <path d="M3.5 19a5.5 5.5 0 0 1 11 0" strokeLinecap="round" />
+          <path d="M18 9v6M15 12h6" strokeLinecap="round" />
+        </IconLink>
+
+        <IconLink href="/notifications" label="Notifications" badge={unread ?? 0}>
+          <path d="M6 9a6 6 0 1 1 12 0c0 3.2.9 5 1.6 6H4.4C5.1 14 6 12.2 6 9Z" strokeLinejoin="round" />
+          <path d="M10 18.5a2 2 0 0 0 4 0" strokeLinecap="round" />
+        </IconLink>
+
         <RefreshButton />
-        <TelegramButton url={telegramUrl} />
       </div>
     </div>
+  );
+}
+
+function IconLink({
+  href,
+  label,
+  badge,
+  children
+}: {
+  href: string;
+  label: string;
+  badge?: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-label={label}
+      className="relative flex h-9 w-9 items-center justify-center rounded-full text-text-primary transition-colors hover:bg-surface-2"
+    >
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} className="h-[19px] w-[19px]">
+        {children}
+      </svg>
+      {!!badge && badge > 0 && (
+        <span className="absolute right-0.5 top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-negative px-1 text-[9px] font-bold leading-none text-white">
+          {badge > 99 ? "99+" : badge}
+        </span>
+      )}
+    </Link>
   );
 }

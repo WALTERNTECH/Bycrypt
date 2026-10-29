@@ -122,3 +122,14 @@ export function PortfolioIcon({ className }: IconProps) {
     </svg>
   );
 }
+
+// Assets — a wallet, for the tab that answers "what am I worth".
+export function AssetsIcon({ className }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className={className}>
+      <path d="M3 8a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v1" strokeLinecap="round" />
+      <rect x="3" y="8" width="18" height="11" rx="2" />
+      <circle cx="16.5" cy="13.5" r="1.2" />
+    </svg>
+  );
+}

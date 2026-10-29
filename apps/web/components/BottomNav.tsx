@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HomeIcon, MarketsIcon, TradeIcon, PortfolioIcon, DepositIcon } from "./icons";
+import { HomeIcon, MarketsIcon, TradeIcon, PortfolioIcon, AssetsIcon } from "./icons";
 
 const items = [
   { href: "/", label: "Home", icon: HomeIcon, match: (p: string) => p === "/" },
   { href: "/markets", label: "Markets", icon: MarketsIcon, match: (p: string) => p.startsWith("/markets") },
   { href: "/trade", label: "Trade", icon: TradeIcon, match: (p: string) => p.startsWith("/trade") },
   { href: "/investments", label: "Positions", icon: PortfolioIcon, match: (p: string) => p.startsWith("/investments") },
-  { href: "/deposit", label: "Deposit", icon: DepositIcon, match: (p: string) => p.startsWith("/deposit") }
+  // Assets replaces Deposit here: depositing is one action and already
+  // sits on the home screen twice, while "what am I worth" is a place
+  // people return to.
+  { href: "/assets", label: "Assets", icon: AssetsIcon, match: (p: string) => p.startsWith("/assets") }
 ];
 
 /**
