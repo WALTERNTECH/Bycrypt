@@ -92,7 +92,7 @@ export default async function UserDetailPage({ params }: { params: { id: string 
             { header: "Submitted", cell: (d) => formatDateTime(d.submitted_at) },
             { header: "Claimed", cell: (d) => (d.claimed_amount ? formatUsdt(d.claimed_amount, { withSymbol: true }) : "—") },
             { header: "Credited", cell: (d) => (d.amount ? formatUsdt(d.amount, { withSymbol: true }) : "—") },
-            { header: "Tx hash", cell: (d) => <span className="font-mono text-xs">{d.tx_hash.slice(0, 16)}…</span> },
+            { header: "Tx hash", cell: (d) => <span className="font-mono text-xs">{d.tx_hash ? d.tx_hash.slice(0, 16) + "…" : "—"}</span> },
             { header: "Status", cell: (d) => <StatusBadge status={d.status} /> }
           ]}
         />

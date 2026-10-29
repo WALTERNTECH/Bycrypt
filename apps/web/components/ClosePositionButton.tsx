@@ -4,38 +4,32 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "./ui";
 import { formatUsdt } from "@/lib/format";
-import { useLiveTickers } from "@/hooks/useLiveTickers";
-import { settlementOf } from "./SettlementValue";
+import { usePositionState } from "@/hooks/usePositionState";
+import type { OpenPositionRow } from "@/lib/position";
 
 /**
  * Closing is always available while a position is open — there is no
- * profit gate. Settling at a flat return is a legitimate exit, and
- * gating it was what left users stuck in a position they could not get
- * out of.
+ * profit gate. The amount quoted in the confirmation is computed exactly
+ * as the server computes it at settlement, so the figure a user agrees to
+ * is the figure that lands in their wallet.
  *
- * The amount quoted in the confirmation is computed exactly as the
- * server computes it at settlement, so the figure a user agrees to is
- * the figure that lands in their wallet.
+ * The control is no longer red. Red here meant "destructive", which made
+ * taking money out of a trade look like a mistake, and it was the only
+ * saturated red on an otherwise calm screen. Closing is the position's
+ * primary action, so it wears the app's primary colour; red stays for the
+ * sell side of the order pad, where it means direction, not danger.
  */
 export function ClosePositionButton({
-  investmentId,
-  symbol,
-  principal,
-  accrued,
+  row,
   size = "md",
   fullWidth = true
 }: {
-  investmentId: string;
-  symbol: string | null;
-  principal: number;
-  accrued: number;
+  row: OpenPositionRow;
   size?: "sm" | "md" | "lg";
   fullWidth?: boolean;
 }) {
   const router = useRouter();
-  const { tickers } = useLiveTickers(symbol ? [symbol] : []);
-  const rawPct = symbol ? (tickers[symbol]?.priceChangePercent ?? 0) : 0;
-  const { total, profit } = settlementOf(principal, accrued, rawPct);
+  const { state } = usePositionState(row);
 
   const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -44,7 +38,7 @@ export function ClosePositionButton({
   async function close() {
     setLoading(true);
     setError(null);
-    const res = await fetch(`/api/investments/${investmentId}/cashout`, { method: "POST" });
+    const res = await fetch(`/api/investments/${row.id}/cashout`, { method: "POST" });
     const data = await res.json().catch(() => ({}));
     setLoading(false);
     if (!res.ok) {
@@ -56,31 +50,43 @@ export function ClosePositionButton({
   }
 
   if (confirming) {
+    const profit = state.settles - row.principal;
     return (
       // data-confirm-open lets the install banner stand down while a
       // confirmation is on screen — it is fixed to the bottom of the
       // viewport and was landing on top of these buttons.
-      <div data-confirm-open className="rounded-xl border border-border-strong bg-surface-2 p-3">
+      <div data-confirm-open className="rounded-lg bg-surface-2 p-3">
         <p className="text-xs leading-relaxed text-text-secondary">
-          Close this position and move{" "}
-          <span className="mono-num font-bold text-text-primary">{formatUsdt(total, { withSymbol: true })}</span> into
-          your Krypton wallet
-          {profit > 0 && (
+          Close this {row.side === "SELL" ? "sell" : "buy"} position and move{" "}
+          <span className="mono-num font-bold text-text-primary">
+            {formatUsdt(state.settles, { withSymbol: true })}
+          </span>{" "}
+          into your Krypton wallet — that&apos;s{" "}
+          <span className="mono-num font-bold text-text-primary">
+            {formatUsdt(row.principal, { withSymbol: true })}
+          </span>{" "}
+          staked{" "}
+          {profit >= 0 ? (
             <>
-              {" "}
-              — that's{" "}
-              <span className="mono-num font-bold text-text-primary">
-                {formatUsdt(principal, { withSymbol: true })}
+              plus{" "}
+              <span className="mono-num font-bold text-positive">
+                {formatUsdt(profit, { withSymbol: true })}
               </span>{" "}
-              back plus{" "}
-              <span className="mono-num font-bold text-positive">{formatUsdt(profit, { withSymbol: true })}</span>{" "}
-              profit
+              gained
+            </>
+          ) : (
+            <>
+              less{" "}
+              <span className="mono-num font-bold text-negative">
+                {formatUsdt(Math.abs(profit), { withSymbol: true })}
+              </span>{" "}
+              lost
             </>
           )}
-          . You can withdraw from the wallet after that.
+          .
         </p>
         <div className="mt-3 flex gap-2">
-          <Button variant="danger" size="sm" onClick={close} disabled={loading} className="flex-1">
+          <Button variant="primary" size="sm" onClick={close} disabled={loading} className="flex-1">
             {loading ? "Closing…" : "Confirm close"}
           </Button>
           <Button variant="secondary" size="sm" onClick={() => setConfirming(false)} disabled={loading}>
@@ -94,10 +100,7 @@ export function ClosePositionButton({
 
   return (
     <div>
-      <Button variant="danger" size={size} fullWidth={fullWidth} onClick={() => setConfirming(true)}>
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} className="h-4 w-4">
-          <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />
-        </svg>
+      <Button variant="primary" size={size} fullWidth={fullWidth} onClick={() => setConfirming(true)}>
         Close position
       </Button>
       {error && <p className="mt-2 text-xs font-medium text-negative">{error}</p>}

@@ -74,12 +74,12 @@ export default async function WithdrawPage() {
         <h2 className="text-sm font-semibold text-text-primary">History</h2>
         <div className="mt-3 grid gap-2">
           {(withdrawals ?? []).length === 0 ? (
-            <p className="rounded-2xl border border-border bg-surface shadow-card px-4 py-6 text-center text-xs text-text-secondary">
+            <p className="rounded-lg bg-surface-2 px-4 py-6 text-center text-xs text-text-secondary">
               No withdrawal requests yet.
             </p>
           ) : (
             (withdrawals ?? []).map((w) => (
-              <div key={w.id} className="rounded-2xl border border-border bg-surface shadow-card p-3.5">
+              <div key={w.id} className="rounded-lg bg-surface-2 p-3.5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <p className="mono-num text-sm font-semibold text-text-primary">

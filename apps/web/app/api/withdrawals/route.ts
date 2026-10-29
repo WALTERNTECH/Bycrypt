@@ -3,13 +3,11 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isValidBitcoinAddress } from "@/lib/btc-address";
-import { verifyTransactionKey } from "@/lib/transactionKey";
 import { sendAdminAlert } from "@/lib/adminEmail";
 
 const bodySchema = z.object({
   amount: z.number().positive(),
-  destination_address: z.string().min(10),
-  transaction_key: z.string().min(1)
+  destination_address: z.string().min(10)
 });
 
 const REASON_MESSAGES: Record<string, string> = {
@@ -40,14 +38,6 @@ export async function POST(req: NextRequest) {
   }
 
   const admin = createAdminClient();
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("transaction_key_hash")
-    .eq("id", user.id)
-    .single();
-  if (!verifyTransactionKey(parsed.data.transaction_key, profile?.transaction_key_hash)) {
-    return NextResponse.json({ error: "Incorrect transaction key." }, { status: 403 });
-  }
 
   const { data: withdrawalId, error } = await supabase.rpc("request_withdrawal", {
     p_amount: parsed.data.amount,

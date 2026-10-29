@@ -2,121 +2,131 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isValidTxid, normalizeTxid } from "@/lib/btc-address";
-import { runDepositVerification } from "@/lib/depositVerification";
-import { verifyTransactionKey } from "@/lib/transactionKey";
+import { buildExpectedAmount, fetchBtcUsdRate } from "@/lib/bitcoin";
 import { sendAdminAlert } from "@/lib/adminEmail";
 
 const bodySchema = z.object({
-  tx_hash: z.string().min(10),
-  transaction_key: z.string().min(1),
-  network: z.enum(["BTC"]).default("BTC"),
-  claimed_amount: z.number().positive().nullable().optional()
+  amount_usd: z.number().positive()
 });
 
-// Deposits fund the user's wallet balance directly — no tier is chosen
-// here. Tiers are chosen later, at "buy" time, from wallet funds
-// (see /api/investments/buy).
-//
-// Verification runs automatically where possible, but Krypton Support
-// also reconciles every deposit manually — this route notifies every
-// active admin the moment a deposit is submitted, with the user's own
-// claimed amount, so it can be matched against a block explorer and
-// credited by hand from the admin Deposits queue regardless of whether
-// automatic verification succeeds.
+/**
+ * Starts a deposit.
+ *
+ * Nothing is typed in by the user beyond the dollar figure they want to
+ * fund. No transaction ID, no transaction key — the row is created here
+ * with the exact amount of BTC it expects to receive, the user sends that
+ * amount, and pressing Verify scans the receiving address for it.
+ *
+ * The exact amount is the dollar figure converted at the live rate, with
+ * the last three satoshi digits replaced by a tag that no other pending
+ * deposit holds. That tag is what makes an address scan able to tell two
+ * deposits apart without a transaction ID — see lib/bitcoin.ts.
+ */
 export async function POST(req: NextRequest) {
   const supabase = createClient();
   const {
     data: { user }
   } = await supabase.auth.getUser();
-
-  if (!user) {
-    return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
-  }
+  if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
   const json = await req.json().catch(() => null);
   const parsed = bodySchema.safeParse(json);
-  if (!parsed.success) {
-    return NextResponse.json({ error: "Invalid request" }, { status: 400 });
-  }
+  if (!parsed.success) return NextResponse.json({ error: "Enter the amount you want to deposit." }, { status: 400 });
 
   const admin = createAdminClient();
-  const { data: profile } = await admin
-    .from("profiles")
-    .select("full_name, transaction_key_hash")
-    .eq("id", user.id)
-    .single();
-  if (!verifyTransactionKey(parsed.data.transaction_key, profile?.transaction_key_hash)) {
-    return NextResponse.json({ error: "Incorrect transaction key." }, { status: 403 });
+
+  const [{ data: addressCfg }, { data: minCfg }, { data: profile }] = await Promise.all([
+    admin.from("platform_config").select("value").eq("key", "receiving_wallet_address").maybeSingle(),
+    admin.from("platform_config").select("value").eq("key", "min_deposit_usdt").maybeSingle(),
+    admin.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
+  ]);
+
+  const address = addressCfg?.value;
+  if (!address || address.startsWith("REPLACE_WITH_")) {
+    return NextResponse.json(
+      { error: "Deposits are disabled until an operator sets the receiving Bitcoin address." },
+      { status: 503 }
+    );
   }
 
-  const txHash = normalizeTxid(parsed.data.tx_hash);
-  if (!isValidTxid(txHash)) {
-    return NextResponse.json({ error: "That doesn't look like a valid transaction hash." }, { status: 400 });
+  const minDeposit = parseFloat(minCfg?.value ?? "10");
+  if (parsed.data.amount_usd < minDeposit) {
+    return NextResponse.json({ error: `The minimum deposit is $${minDeposit}.` }, { status: 400 });
   }
 
-  // Insert as the authenticated user so RLS enforces user_id = auth.uid();
-  // the DB's UNIQUE(tx_hash) constraint is the last line of defense
-  // against double-crediting the same on-chain transaction.
+  const rateUsd = await fetchBtcUsdRate();
+  if (!rateUsd) {
+    return NextResponse.json(
+      { error: "We can't price BTC right now, so we can't tell you what to send. Try again in a moment." },
+      { status: 503 }
+    );
+  }
+
+  // Tags only need to be unique among deposits still waiting to be
+  // matched — once a deposit is confirmed or rejected its tag is free.
+  const { data: pending } = await admin
+    .from("deposits")
+    .select("amount_tag")
+    .eq("status", "pending_verification")
+    .not("amount_tag", "is", null);
+
+  const built = buildExpectedAmount(
+    parsed.data.amount_usd,
+    rateUsd,
+    (pending ?? []).map((d: any) => Number(d.amount_tag))
+  );
+  if (!built) {
+    return NextResponse.json({ error: "Too many deposits are in progress. Try again shortly." }, { status: 503 });
+  }
+
+  // Inserted as the authenticated user so RLS enforces user_id = auth.uid().
   const { data: deposit, error: insertError } = await supabase
     .from("deposits")
     .insert({
       user_id: user.id,
-      tx_hash: txHash,
-      network: parsed.data.network,
-      claimed_amount: parsed.data.claimed_amount ?? null
+      network: "BTC",
+      token: "BTC",
+      claimed_amount: parsed.data.amount_usd,
+      expected_btc: built.expectedBtc,
+      amount_tag: built.tag
     })
     .select("id")
     .single();
 
-  if (insertError) {
-    if (insertError.code === "23505") {
-      return NextResponse.json(
-        { error: "This transaction hash has already been submitted." },
-        { status: 409 }
-      );
-    }
-    return NextResponse.json({ error: "Could not create the deposit record." }, { status: 500 });
+  if (insertError || !deposit) {
+    return NextResponse.json({ error: "Could not start that deposit. Try again." }, { status: 500 });
   }
 
-  // Notify admins immediately — this is the reconciliation queue entry,
-  // independent of whether automatic verification below succeeds.
+  // Notify admins — this is the reconciliation queue entry, independent
+  // of whether automatic verification later succeeds.
   const { data: admins } = await admin.from("admin_users").select("id").eq("is_active", true);
   if (admins && admins.length > 0) {
-    const amountText = parsed.data.claimed_amount ? `$${parsed.data.claimed_amount}` : "an unspecified amount";
     await admin.from("notifications").insert(
       admins.map((a) => ({
         admin_id: a.id,
         type: "deposit_submitted",
-        message: `${profile?.full_name ?? "A user"} submitted a deposit of ${amountText} (tx ${txHash.slice(0, 10)}…) — reconcile in the Deposits queue.`
+        message: `${profile?.full_name ?? "A user"} started a $${parsed.data.amount_usd} deposit — expecting ${built.expectedBtc} BTC.`
       }))
     );
   }
 
-  // Email the same alert so support sees it without watching the
-  // dashboard. Fire-and-forget: the deposit row already exists and must
-  // not depend on mail delivery.
   void sendAdminAlert({
     kind: "deposit",
     userName: profile?.full_name ?? "A user",
     userEmail: user.email,
-    amount: parsed.data.claimed_amount ?? null,
-    detail: `Tx ${txHash} · ${parsed.data.network}`,
+    amount: parsed.data.amount_usd,
+    detail: `Expecting exactly ${built.expectedBtc} BTC to ${address}`,
     actionPath: "/dashboard/deposits"
   });
 
-  try {
-    const outcome = await runDepositVerification(deposit.id);
-    const httpStatus = outcome.status === "rejected" ? 400 : outcome.status === "confirmed" ? 200 : 202;
-    return NextResponse.json({ deposit_id: deposit.id, ...outcome }, { status: httpStatus });
-  } catch {
-    return NextResponse.json(
-      {
-        deposit_id: deposit.id,
-        status: "pending_verification",
-        message: "Submitted — our team will confirm it shortly."
-      },
-      { status: 202 }
-    );
-  }
+  return NextResponse.json(
+    {
+      deposit_id: deposit.id,
+      address,
+      expected_btc: built.expectedBtc,
+      amount_usd: parsed.data.amount_usd,
+      rate_usd: rateUsd
+    },
+    { status: 201 }
+  );
 }

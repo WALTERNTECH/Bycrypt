@@ -21,7 +21,7 @@ export default async function AccountPage() {
 
       <Link
         href="/referral"
-        className="mt-4 flex items-center justify-between rounded-2xl border border-border bg-surface shadow-card p-4 transition-colors hover:border-brand"
+        className="mt-4 flex items-center justify-between rounded-lg bg-surface-2 p-4 transition-colors hover:border-brand"
       >
         <div>
           <p className="text-sm font-semibold text-text-primary">Refer & earn</p>

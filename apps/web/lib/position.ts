@@ -1,0 +1,143 @@
+import {
+  moveFromEntry,
+  normalizeSide,
+  positionPct,
+  positionPnl,
+  positionValue,
+  type Side
+} from "./leverage";
+
+/**
+ * One function that answers "what is this position worth right now".
+ *
+ * It exists because that question used to be answered in six places with
+ * five different formulas, which is how the interface ended up quoting a
+ * figure the settlement never paid. Both the screens and the cash-out
+ * route call this, so the number a user watches is the number that moves.
+ */
+
+export interface PositionInput {
+  principal: number;
+  /** Admin-granted return. A floor on settlement, but only when set. */
+  accrued: number;
+  side: Side;
+  entryPrice: number | null;
+  livePrice: number | null;
+  /** Used only when the entry price is unknown: the coin's 24h change. */
+  fallbackPct?: number | null;
+  targetGainPct?: number | null;
+}
+
+export interface PositionState {
+  /** The coin's move, in the direction the position is pointing. */
+  movePct: number | null;
+  /** The position's own percentage change against the stake. */
+  pnlPct: number;
+  /** Gain or loss in dollars. Signed. */
+  pnl: number;
+  /** What the position is worth at this instant. */
+  value: number;
+  /** What closing would actually credit — value, floored by any granted return. */
+  settles: number;
+  /** Where the move was measured from, so the UI can say so. */
+  basis: "entry" | "24h" | "none";
+  /** True once a target gain has been set and reached. */
+  targetReached: boolean;
+}
+
+export function positionState(input: PositionInput): PositionState {
+  const side = normalizeSide(input.side);
+  const principal = input.principal;
+  const accrued = Number.isFinite(input.accrued) ? input.accrued : 0;
+
+  const fromEntry = moveFromEntry(input.entryPrice, input.livePrice);
+  const basis: PositionState["basis"] =
+    fromEntry !== null ? "entry" : Number.isFinite(input.fallbackPct ?? NaN) ? "24h" : "none";
+  const rawPct = fromEntry !== null ? fromEntry : basis === "24h" ? (input.fallbackPct as number) : 0;
+
+  const value = positionValue(principal, rawPct, side);
+  const pnl = positionPnl(principal, rawPct, side);
+  const pnlPct = positionPct(principal, rawPct, side);
+
+  // A granted return is a floor on what closing pays, not an addition to
+  // it — otherwise a position could be paid its market gain twice.
+  const settles = accrued > 0 ? Math.max(value, principal + accrued) : value;
+
+  const target = input.targetGainPct ?? null;
+  // The epsilon is not a fudge. A price of entry x 1.005 lands on
+  // 100.49999999999999 in binary floating point, so a position sitting
+  // exactly on its +10% target computed to 9.999999999999998% and the
+  // auto-close never fired. A billionth of a percentage point of
+  // tolerance makes the boundary behave the way the number reads.
+  const TARGET_EPSILON = 1e-9;
+  const targetReached = target !== null && target > 0 && pnlPct >= target - TARGET_EPSILON;
+
+  return {
+    movePct: fromEntry !== null || basis === "24h" ? rawPct : null,
+    pnlPct,
+    pnl,
+    value,
+    settles,
+    basis,
+    targetReached
+  };
+}
+
+/**
+ * The shape every screen passes around for an open position.
+ *
+ * Positions grew three fields that matter to the maths — the side, the
+ * entry price and the auto-close target — and passing them as four loose
+ * props to six components is how they end up disagreeing. One row object
+ * goes down instead.
+ */
+export interface OpenPositionRow {
+  id: string;
+  symbol: string | null;
+  displayName?: string;
+  principal: number;
+  accrued: number;
+  side: Side;
+  entryPrice: number | null;
+  targetGainPct: number | null;
+  timeframe: string | null;
+  startedAt: string;
+}
+
+/** Maps a raw `investments` row. Numerics arrive from Postgres as strings. */
+export function mapPositionRow(row: any): OpenPositionRow {
+  const num = (v: unknown): number | null => {
+    if (v === null || v === undefined || v === "") return null;
+    const n = parseFloat(String(v));
+    return Number.isFinite(n) ? n : null;
+  };
+  return {
+    id: String(row.id),
+    symbol: (row.traded_symbol as string | null) ?? null,
+    principal: num(row.amount) ?? 0,
+    accrued: num(row.accrued_return) ?? 0,
+    side: normalizeSide(row.side),
+    entryPrice: num(row.entry_price),
+    targetGainPct: num(row.target_gain_pct),
+    timeframe: (row.timeframe as string | null) ?? null,
+    startedAt: String(row.start_date ?? row.created_at ?? new Date().toISOString())
+  };
+}
+
+/** Columns every position view needs. Kept here so a screen cannot
+ *  silently select fewer and fall back to the wrong basis. */
+export const POSITION_COLUMNS =
+  "id, amount, accrued_return, traded_symbol, status, entry_price, start_date, side, target_gain_pct, timeframe";
+
+/**
+ * The gains a position can be set to close itself at.
+ *
+ * These are RETURN targets, not stake fractions — the row of chips under
+ * the amount field used to be read as "how much of my wallet", which is a
+ * different question entirely and is now asked separately and labelled.
+ */
+export const TARGET_GAIN_OPTIONS = [10, 25, 50, 100] as const;
+
+export function isTargetGain(value: unknown): boolean {
+  return typeof value === "number" && (TARGET_GAIN_OPTIONS as readonly number[]).includes(value);
+}

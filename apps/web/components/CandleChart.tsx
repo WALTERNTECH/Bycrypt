@@ -14,15 +14,15 @@ export function CandleChart({ symbol, interval }: { symbol: string; interval: In
     if (!containerRef.current) return;
 
     const chart = createChart(containerRef.current, {
-      layout: { background: { type: ColorType.Solid, color: "#181A20" }, textColor: "#848E9C" },
+      layout: { background: { type: ColorType.Solid, color: "#FFFFFF" }, textColor: "#8A8D94" },
       grid: {
-        vertLines: { color: "#2B3139" },
-        horzLines: { color: "#2B3139" }
+        vertLines: { visible: false },
+        horzLines: { color: "#F2F3F5" }
       },
       width: containerRef.current.clientWidth,
-      height: 420,
-      timeScale: { timeVisible: true, borderColor: "#2B3139" },
-      rightPriceScale: { borderColor: "#2B3139" },
+      height: 300,
+      timeScale: { timeVisible: true, borderVisible: false },
+      rightPriceScale: { borderVisible: false },
       crosshair: { mode: 0 },
       // The chart sits mid-page on a phone, with the order controls below
       // it. Left to its defaults it swallows vertical drags and the wheel
@@ -34,11 +34,11 @@ export function CandleChart({ symbol, interval }: { symbol: string; interval: In
     });
 
     const series = chart.addCandlestickSeries({
-      upColor: "#0ECB81",
-      downColor: "#F6465D",
+      upColor: "#20B26C",
+      downColor: "#EF454A",
       borderVisible: false,
-      wickUpColor: "#0ECB81",
-      wickDownColor: "#F6465D"
+      wickUpColor: "#20B26C",
+      wickDownColor: "#EF454A"
     });
 
     chartRef.current = chart;
@@ -95,7 +95,7 @@ export function CandleChart({ symbol, interval }: { symbol: string; interval: In
   }, [symbol, interval]);
 
   return (
-    <div className="relative rounded-2xl border border-border bg-surface shadow-card p-2">
+    <div className="relative">
       {loading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center text-sm text-text-secondary">
           Loading chart…

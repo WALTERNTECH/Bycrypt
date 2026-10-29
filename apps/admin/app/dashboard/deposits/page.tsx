@@ -41,7 +41,7 @@ export default async function AdminDepositsPage() {
                 <td className="px-5 py-3 text-text-secondary">{formatDateTime(d.submitted_at)}</td>
                 <td className="px-5 py-3 text-text-primary">{d.profiles?.full_name ?? "—"}</td>
                 <td className="px-5 py-3 text-text-secondary">{d.network ?? "BTC"}</td>
-                <td className="px-5 py-3 font-mono text-xs text-text-secondary">{truncateMiddle(d.tx_hash)}</td>
+                <td className="px-5 py-3 font-mono text-xs text-text-secondary">{d.tx_hash ? truncateMiddle(d.tx_hash) : d.expected_btc ? <span className="text-text-tertiary">awaiting {Number(d.expected_btc).toFixed(8)} BTC</span> : <span className="text-text-tertiary">—</span>}</td>
                 <td className="mono-num px-5 py-3 text-text-secondary">
                   {d.claimed_amount ? formatUsdt(d.claimed_amount, { withSymbol: true }) : "—"}
                 </td>

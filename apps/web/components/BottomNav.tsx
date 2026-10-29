@@ -8,7 +8,12 @@ const items = [
   { href: "/", label: "Home", icon: HomeIcon, match: (p: string) => p === "/" },
   { href: "/markets", label: "Markets", icon: MarketsIcon, match: (p: string) => p.startsWith("/markets") },
   { href: "/trade", label: "Trade", icon: TradeIcon, match: (p: string) => p.startsWith("/trade") },
-  { href: "/investments", label: "Positions", icon: PortfolioIcon, match: (p: string) => p.startsWith("/investments") },
+  {
+    href: "/investments",
+    label: "Positions",
+    icon: PortfolioIcon,
+    match: (p: string) => p.startsWith("/investments")
+  },
   // Assets replaces Deposit here: depositing is one action and already
   // sits on the home screen twice, while "what am I worth" is a place
   // people return to.
@@ -18,21 +23,20 @@ const items = [
 /**
  * The tab bar.
  *
- * Deliberately plain: a hairline top border, white fill, and nothing
- * else. The previous version carried a tinted pill and a coloured rail
- * per tab, which is what made it read as decorated rather than designed.
+ * A light panel lifted off the page, with the selected tab sitting in its
+ * own near-black frame. That pairing — light bar, dark framed selection —
+ * is what gives an exchange footer its weight: the frame is a physical
+ * thing you have moved to, rather than a coloured icon among grey ones.
  *
- * Selection is shown the way an exchange shows it — the active tab goes
- * near-black and heavier, the rest stay grey. On a white interface that
- * contrast is stronger than any accent colour, and it leaves the amber
- * free to mean "this is the action" everywhere else in the app.
+ * It also leaves the amber free to mean "this is the action" everywhere
+ * else in the app, which it cannot do if the footer is using it too.
  */
 export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-base pb-[env(safe-area-inset-bottom)]">
-      <div className="mx-auto flex max-w-lg items-stretch justify-around">
+    <nav className="fixed inset-x-0 bottom-0 z-40 bg-surface-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-1px_0_rgba(18,18,20,0.06),0_-8px_24px_-18px_rgba(18,18,20,0.25)]">
+      <div className="mx-auto flex max-w-lg items-stretch gap-1 px-2 py-1.5">
         {items.map((item) => {
           const active = item.match(pathname);
           const Icon = item.icon;
@@ -41,14 +45,14 @@ export function BottomNav() {
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className="flex flex-1 flex-col items-center gap-1 py-2 transition-colors"
+              className={`flex flex-1 flex-col items-center gap-1 rounded-lg py-1.5 transition-colors ${
+                active ? "bg-[#17181C]" : "hover:bg-surface-3"
+              }`}
             >
-              <Icon
-                className={`h-[20px] w-[20px] ${active ? "text-text-primary" : "text-text-tertiary"}`}
-              />
+              <Icon className={`h-[19px] w-[19px] ${active ? "text-white" : "text-text-tertiary"}`} />
               <span
                 className={`text-[10px] leading-none ${
-                  active ? "font-semibold text-text-primary" : "font-medium text-text-tertiary"
+                  active ? "font-bold text-white" : "font-medium text-text-tertiary"
                 }`}
               >
                 {item.label}

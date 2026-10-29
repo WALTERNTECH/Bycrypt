@@ -103,7 +103,7 @@ export default async function StatementPage() {
       {/* The printed sheet. On screen it is a card; on paper it is the
           whole document, which is why the header below only appears in
           print — the app chrome is hidden there. */}
-      <article id="krypton-statement" className="mt-4 rounded-xl border border-border bg-surface print:rounded-none print:border-0">
+      <article id="krypton-statement" className="mt-4 rounded-lg bg-surface-2 print:rounded-none print:border-0">
         <header className="hidden border-b border-border px-5 py-4 print:block">
           <p className="text-[18px] font-extrabold tracking-tight text-text-primary">Krypton</p>
           <p className="mt-0.5 text-[11px] text-text-secondary">
@@ -150,7 +150,7 @@ export default async function StatementPage() {
               </thead>
               <tbody>
                 {rows.map((r, i) => (
-                  <tr key={i} className="border-t border-border">
+                  <tr key={i} className="">
                     <td className="py-2 text-[12px] text-text-secondary">
                       {new Date(r.when).toLocaleDateString(undefined, { day: "2-digit", month: "short" })}
                     </td>
@@ -171,7 +171,7 @@ export default async function StatementPage() {
           )}
         </div>
 
-        <footer className="border-t border-border px-5 py-3">
+        <footer className=" px-5 py-3">
           <p className="text-[10px] leading-relaxed text-text-tertiary">
             Figures reflect recorded account activity as at {generated}. Open positions are valued at the
             current market price and will change. Past performance does not indicate future results, and no

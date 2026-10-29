@@ -50,9 +50,12 @@ async function esplora(path: string): Promise<Response | null> {
   for (const host of ESPLORA_HOSTS) {
     try {
       const res = await fetch(`${host}${path}`, { cache: "no-store" });
-      // 404 is a real answer ("no such transaction"), not host trouble, so
-      // it is returned rather than triggering the fallback.
-      if (res.ok || res.status === 404) return res;
+      // 404 ("no such transaction") and 400 ("that is not a Bitcoin
+      // address") are real answers, not host trouble, so they are returned
+      // rather than triggering the fallback — a second host would give the
+      // same answer, and reporting it as an unreachable network sent
+      // operators looking for an outage that was not there.
+      if (res.ok || res.status === 404 || res.status === 400) return res;
     } catch {
       // Try the next host.
     }
@@ -129,6 +132,167 @@ export async function verifyBitcoinDeposit(
     const usdAmount = Math.round(btcAmount * rateUsd * 100) / 100;
 
     return { ok: true, btcAmount, usdAmount, rateUsd, confirmations };
+  } catch {
+    return { ok: false, reason: "verification_error" };
+  }
+}
+
+/* ============================================================
+   Verifying a deposit WITHOUT a transaction ID.
+
+   Asking a depositor for a txid was asking them to go and find a
+   64-character string in another app and paste it correctly. They should
+   be able to send the coins and press one button.
+
+   What the txid provided, though, was proof of ownership: it said "this
+   particular payment is mine". With one shared receiving address and no
+   txid, two people depositing the same dollar figure are
+   indistinguishable, and whoever presses Verify first takes the other's
+   money.
+
+   The tag closes that. Each pending deposit is given its own exact
+   amount: the dollar figure converted to BTC, rounded to the nearest
+   hundred satoshis, plus a tag of 1-99 satoshis that no other pending
+   deposit holds. Every expected amount is therefore bucket x 100 + tag,
+   which stays unique whether or not two deposits are for the same dollar
+   figure. The depositor sends at most about a hundred satoshis away from
+   what they asked for, roughly ten cents at a six-figure BTC price, and
+   is credited the USD value of whatever actually arrives — so the
+   difference lands in the amount sent, never in the amount received.
+
+   Ninety-nine slots caps concurrent pending deposits. Past that the
+   deposit route says so and asks for a retry, rather than issuing an
+   amount that could be mistaken for someone else's.
+   ============================================================ */
+
+/** Range of the per-deposit tag, in satoshis. */
+export const AMOUNT_TAG_MIN = 1;
+export const AMOUNT_TAG_MAX = 99;
+const TAG_MODULUS = 100;
+
+/**
+ * Builds the exact BTC amount a deposit should receive.
+ * `takenTags` are the tags already held by other pending deposits.
+ */
+export function buildExpectedAmount(
+  usdAmount: number,
+  rateUsd: number,
+  takenTags: number[]
+): { expectedBtc: number; tag: number } | null {
+  if (!(usdAmount > 0) || !(rateUsd > 0)) return null;
+
+  const taken = new Set(takenTags.filter((t) => Number.isInteger(t)));
+  let tag = -1;
+  // Start somewhere random so two deposits created in the same second
+  // don't queue up on tag 1, then walk forward to the first free slot.
+  const start = AMOUNT_TAG_MIN + Math.floor(Math.random() * AMOUNT_TAG_MAX);
+  for (let i = 0; i < AMOUNT_TAG_MAX; i++) {
+    const candidate = ((start - AMOUNT_TAG_MIN + i) % AMOUNT_TAG_MAX) + AMOUNT_TAG_MIN;
+    if (!taken.has(candidate)) {
+      tag = candidate;
+      break;
+    }
+  }
+  if (tag < 0) return null; // every tag in use — vanishingly unlikely
+
+  const baseSats = Math.round((usdAmount / rateUsd) * SATS_PER_BTC);
+  // Nearest bucket rather than the one below, so the drift is split
+  // either side of the figure asked for instead of always shaving it
+  // down. Below two buckets there is nothing to round into, so the tag
+  // goes on top — it would distort a tiny amount rather than label it.
+  const sats =
+    baseSats < TAG_MODULUS * 2
+      ? baseSats + tag
+      : Math.round(baseSats / TAG_MODULUS) * TAG_MODULUS + tag;
+
+  return { expectedBtc: sats / SATS_PER_BTC, tag };
+}
+
+interface EsploraAddressTx extends EsploraTx {
+  status: { confirmed: boolean; block_height?: number };
+}
+
+export interface AddressScanResult {
+  ok: boolean;
+  reason?: string;
+  txid?: string;
+  btcAmount?: number;
+  usdAmount?: number;
+  rateUsd?: number;
+  confirmations?: number;
+}
+
+/**
+ * Looks for a payment of exactly `expectedBtc` to `address` that no other
+ * deposit has already claimed.
+ *
+ * Matching is exact to the satoshi. Bitcoin fees are paid by the sender,
+ * so the amount received is the amount sent — a tolerance here would
+ * only make two tagged deposits collide again.
+ */
+export async function findPaymentToAddress(
+  address: string,
+  expectedBtc: number,
+  claimedTxids: string[] = []
+): Promise<AddressScanResult> {
+  try {
+    if (!(expectedBtc > 0)) return { ok: false, reason: "amount_not_set" };
+
+    const expectedSats = Math.round(expectedBtc * SATS_PER_BTC);
+    const claimed = new Set(claimedTxids.map((t) => t.toLowerCase()));
+
+    const res = await esplora(`/address/${address}/txs`);
+    if (!res) return { ok: false, reason: "explorer_unreachable" };
+    if (res.status === 400) return { ok: false, reason: "invalid_address" };
+    if (res.status === 404) return { ok: false, reason: "payment_not_found" };
+
+    const txs = (await res.json()) as EsploraAddressTx[];
+    if (!Array.isArray(txs)) return { ok: false, reason: "explorer_unreachable" };
+
+    const tipRes = await esplora("/blocks/tip/height");
+    if (!tipRes || !tipRes.ok) return { ok: false, reason: "explorer_unreachable" };
+    const tipHeight = Number((await tipRes.text()).trim());
+    if (!Number.isFinite(tipHeight)) return { ok: false, reason: "explorer_unreachable" };
+
+    let waiting: AddressScanResult | null = null;
+
+    for (const tx of txs) {
+      if (!tx?.txid || claimed.has(tx.txid.toLowerCase())) continue;
+
+      const sats = (tx.vout ?? [])
+        .filter((o) => o.scriptpubkey_address === address)
+        .reduce((total, o) => total + (o.value ?? 0), 0);
+
+      if (sats !== expectedSats) continue;
+
+      const btcAmount = sats / SATS_PER_BTC;
+
+      if (!tx.status?.confirmed || !tx.status.block_height) {
+        // Found, but still in the mempool where it can be replaced.
+        waiting = { ok: false, reason: "insufficient_confirmations", btcAmount, confirmations: 0, txid: tx.txid };
+        continue;
+      }
+
+      const confirmations = tipHeight - tx.status.block_height + 1;
+      if (confirmations < MIN_CONFIRMATIONS) {
+        waiting = { ok: false, reason: "insufficient_confirmations", btcAmount, confirmations, txid: tx.txid };
+        continue;
+      }
+
+      const rateUsd = await fetchBtcUsdRate();
+      if (!rateUsd) return { ok: false, reason: "rate_unavailable", btcAmount, confirmations, txid: tx.txid };
+
+      return {
+        ok: true,
+        txid: tx.txid,
+        btcAmount,
+        usdAmount: Math.round(btcAmount * rateUsd * 100) / 100,
+        rateUsd,
+        confirmations
+      };
+    }
+
+    return waiting ?? { ok: false, reason: "payment_not_found" };
   } catch {
     return { ok: false, reason: "verification_error" };
   }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-type Variant = "primary" | "success" | "danger" | "secondary" | "ghost";
+type Variant = "primary" | "success" | "danger" | "secondary" | "ink" | "ghost";
 type Size = "sm" | "md" | "lg";
 
 // Exchange-style controls: flat fills, no gradients, no inner highlight,
@@ -14,7 +14,13 @@ const VARIANTS: Record<Variant, string> = {
   primary: "bg-brand text-ink border-transparent hover:bg-brand-hover",
   success: "bg-positive text-white border-transparent hover:bg-[#1BA062]",
   danger: "bg-negative text-white border-transparent hover:bg-[#DC3F44]",
-  secondary: "bg-surface-2 text-text-primary border-border hover:bg-surface-3",
+  // Darker than the page rather than a hairline box around it. An
+  // outlined button on white reads as a placeholder; a filled grey one
+  // reads as a control, which is the whole difference between these two.
+  secondary: "bg-surface-3 text-text-primary border-transparent hover:bg-[#E4E5EA]",
+  // Near-black. The second-strongest action on the screen, used where
+  // amber would claim too much of it.
+  ink: "bg-[#17181C] text-white border-transparent hover:bg-[#2A2C31]",
   ghost: "bg-transparent text-text-secondary border-transparent hover:bg-surface-2 hover:text-text-primary"
 };
 
@@ -89,7 +95,7 @@ export function Card({
 }: React.HTMLAttributes<HTMLDivElement>) {
   return (
     <div
-      className={`rounded-2xl border border-border bg-surface shadow-card ${className}`}
+      className={`rounded-lg bg-surface-2 ${className}`}
       {...rest}
     >
       {children}

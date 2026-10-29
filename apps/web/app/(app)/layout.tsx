@@ -3,31 +3,39 @@ import { createClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/TopBar";
 import { BottomNav } from "@/components/BottomNav";
 import { RiskNotice } from "@/components/RiskNotice";
+import { AutoCloseWatcher } from "@/components/AutoCloseWatcher";
+import { mapPositionRow, POSITION_COLUMNS } from "@/lib/position";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
-  const [
-    {
-      data: { user }
-    },
-    { data: symbols }
-  ] = await Promise.all([
-    supabase.auth.getUser(),
-    supabase.from("market_symbols").select("symbol, display_name").eq("is_active", true).order("sort_order")
-  ]);
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
 
   if (!user) redirect("/login");
 
+  // The open position is read here, in the shell, so the auto-close
+  // watcher runs on every signed-in screen rather than only on the one
+  // that happens to show the position.
+  const { data: openPosition } = await supabase
+    .from("investments")
+    .select(POSITION_COLUMNS)
+    .eq("user_id", user.id)
+    .neq("status", "withdrawn")
+    .not("target_gain_pct", "is", null)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   return (
     <div className="min-h-screen bg-base">
-      {/* App chrome is a white bar; the trading body below stays dark.
-          pt-[env(safe-area-inset-top)] keeps it clear of the notch when
-          launched from the home screen. */}
       {/* The ticker used to live here, pinned under the header, where a
           constantly sliding strip sat above everything the user was
           actually trying to read. It now sits further down the page, in
-          the flow, as a market section rather than as chrome. */}
-      <header className="sticky top-0 z-40 border-b border-border bg-header pt-[env(safe-area-inset-top)]">
+          the flow, as a market section rather than as chrome.
+          pt-[env(safe-area-inset-top)] keeps the bar clear of the notch
+          when launched from the home screen. */}
+      <header className="sticky top-0 z-40 bg-header pt-[env(safe-area-inset-top)]">
         <TopBar />
       </header>
 
@@ -36,6 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <RiskNotice />
       </main>
 
+      <AutoCloseWatcher row={openPosition ? mapPositionRow(openPosition) : null} />
       <BottomNav />
     </div>
   );

@@ -3,14 +3,12 @@ import { z } from "zod";
 import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { hashTransactionKey, isValidTransactionKey } from "@/lib/transactionKey";
 import { sendAdminAlert } from "@/lib/adminEmail";
 
 const bodySchema = z.object({
   full_name: z.string().min(1).max(120),
   email: z.string().email(),
   password: z.string().min(8).max(72),
-  transaction_key: z.string(),
   ref_code: z.string().max(12).optional().nullable()
 });
 
@@ -27,14 +25,7 @@ export async function POST(req: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: "Please check your details and try again." }, { status: 400 });
   }
-  const { full_name, email, password, transaction_key, ref_code } = parsed.data;
-
-  if (!isValidTransactionKey(transaction_key)) {
-    return NextResponse.json(
-      { error: "Transaction key must be 6-32 letters/numbers." },
-      { status: 400 }
-    );
-  }
+  const { full_name, email, password, ref_code } = parsed.data;
 
   const admin = createAdminClient();
 
@@ -50,15 +41,6 @@ export async function POST(req: NextRequest) {
       ? "An account with that email already exists."
       : createError.message;
     return NextResponse.json({ error: message }, { status: 400 });
-  }
-
-  const { error: keyError } = await admin
-    .from("profiles")
-    .update({ transaction_key_hash: hashTransactionKey(transaction_key) })
-    .eq("id", created.user.id);
-
-  if (keyError) {
-    return NextResponse.json({ error: "Account created but setup failed — contact support." }, { status: 500 });
   }
 
   // Alert support that someone joined. Deliberately not awaited into the

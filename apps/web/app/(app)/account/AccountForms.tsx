@@ -4,12 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
-import { SecretInput } from "@/components/SecretInput";
-import { isValidTransactionKey } from "@/lib/transactionKey";
 
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
+    <div className="rounded-lg bg-surface-2 p-4">
       <p className="text-sm font-semibold text-text-primary">{title}</p>
       <div className="mt-3">{children}</div>
     </div>
@@ -35,13 +33,6 @@ export function AccountForms({ initialFullName, initialPhone }: { initialFullNam
   const [newPassword, setNewPassword] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordMsg, setPasswordMsg] = useState<{ text: string; tone: "positive" | "negative" } | null>(null);
-
-  // Transaction key
-  const [currentKey, setCurrentKey] = useState("");
-  const [newKey, setNewKey] = useState("");
-  const [confirmKey, setConfirmKey] = useState("");
-  const [keyLoading, setKeyLoading] = useState(false);
-  const [keyMsg, setKeyMsg] = useState<{ text: string; tone: "positive" | "negative" } | null>(null);
 
   async function handleProfileSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -95,35 +86,6 @@ export function AccountForms({ initialFullName, initialPhone }: { initialFullNam
     setPasswordMsg({ text: "Password updated.", tone: "positive" });
   }
 
-  async function handleKeySubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setKeyMsg(null);
-    if (!isValidTransactionKey(newKey)) {
-      setKeyMsg({ text: "New key must be 6-32 letters/numbers.", tone: "negative" });
-      return;
-    }
-    if (newKey !== confirmKey) {
-      setKeyMsg({ text: "New keys don't match.", tone: "negative" });
-      return;
-    }
-    setKeyLoading(true);
-    const res = await fetch("/api/account/transaction-key", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ current_key: currentKey, new_key: newKey })
-    });
-    const data = await res.json();
-    setKeyLoading(false);
-    if (!res.ok) {
-      setKeyMsg({ text: data.error ?? "Could not update transaction key.", tone: "negative" });
-      return;
-    }
-    setCurrentKey("");
-    setNewKey("");
-    setConfirmKey("");
-    setKeyMsg({ text: "Transaction key updated.", tone: "positive" });
-  }
-
   return (
     <div className="space-y-4">
       <SectionCard title="Profile">
@@ -168,36 +130,13 @@ export function AccountForms({ initialFullName, initialPhone }: { initialFullNam
         </form>
       </SectionCard>
 
-      <SectionCard title="Change transaction key">
-        <p className="mb-3 text-xs text-text-secondary">
-          Required to authorize every deposit and withdrawal.
-        </p>
-        <form onSubmit={handleKeySubmit} className="space-y-3">
-          <FormField label="Current transaction key">
-            <SecretInput required value={currentKey} onChange={setCurrentKey} placeholder="Current key" />
-          </FormField>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <FormField label="New transaction key">
-              <SecretInput required value={newKey} onChange={setNewKey} placeholder="New key" />
-            </FormField>
-            <FormField label="Confirm new key">
-              <SecretInput required value={confirmKey} onChange={setConfirmKey} placeholder="Re-enter key" />
-            </FormField>
-          </div>
-          {keyMsg && <Notice text={keyMsg.text} tone={keyMsg.tone} />}
-          <button type="submit" disabled={keyLoading} className={buttonClass}>
-            {keyLoading ? "Updating…" : "Update transaction key"}
-          </button>
-        </form>
-      </SectionCard>
-
       <button
         onClick={async () => {
           await supabase.auth.signOut();
           router.push("/login");
           router.refresh();
         }}
-        className="w-full rounded-lg border border-negative/40 py-2.5 text-sm font-bold text-negative transition-colors hover:bg-negative/10"
+        className="w-full rounded-lg bg-surface-2 py-2.5 text-sm font-bold text-negative transition-colors hover:bg-surface-3"
       >
         Sign out
       </button>

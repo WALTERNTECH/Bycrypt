@@ -21,8 +21,55 @@ export interface Candle {
   close: number;
 }
 
-export const SUPPORTED_INTERVALS = ["1h", "4h", "1d", "1w"] as const;
-export type Interval = (typeof SUPPORTED_INTERVALS)[number];
+/**
+ * Timeframes offered on the chart.
+ *
+ * 1H is deliberately absent. At this leverage an hour of price action is
+ * noise, and the timeframe chip is not only a candle size here — it also
+ * sets the window the market is scanned over to produce a signal, so the
+ * shortest honest read is four hours.
+ *
+ * Note the capital M: Binance reads "1M" as one month and "1m" as one
+ * minute, so this list must never be lower-cased.
+ */
+export const CHART_INTERVALS = ["4h", "1d", "1w", "1M"] as const;
+export type ChartInterval = (typeof CHART_INTERVALS)[number];
+
+/**
+ * 1h is still a valid request — it is the right resolution for drawing a
+ * position only a few hours old, and for scanning a 4h or 1d window. It
+ * just isn't offered as a chip.
+ */
+export type Interval = ChartInterval | "1h";
+
+export const INTERVAL_LABEL: Record<Interval, string> = {
+  "1h": "1H",
+  "4h": "4H",
+  "1d": "1D",
+  "1w": "1W",
+  "1M": "1M"
+};
+
+/**
+ * What each chip means when the market is scanned for a signal: the span
+ * of time to read, and the candle size to read it with.
+ *
+ * Picking 4H asks "how has this market performed over the last four
+ * hours", so the window is four hours of hourly candles — not four-hour
+ * candles stretching back fifty days. The chart still draws at the chip's
+ * own interval, which is what a chart is for; the signal describes the
+ * window the chip names.
+ */
+export const SCAN_WINDOW: Record<ChartInterval, { interval: Interval; candles: number; label: string }> = {
+  "4h": { interval: "1h", candles: 4, label: "4 hours" },
+  "1d": { interval: "1h", candles: 24, label: "24 hours" },
+  "1w": { interval: "4h", candles: 42, label: "7 days" },
+  "1M": { interval: "1d", candles: 30, label: "30 days" }
+};
+
+export function isChartInterval(value: unknown): value is ChartInterval {
+  return typeof value === "string" && (CHART_INTERVALS as readonly string[]).includes(value);
+}
 
 export async function fetchTickers(symbols: string[]): Promise<Record<string, Ticker>> {
   if (symbols.length === 0) return {};
@@ -44,6 +91,22 @@ export async function fetchTickers(symbols: string[]): Promise<Record<string, Ti
     };
   }
   return out;
+}
+
+/** Last traded price for a single symbol. Cheaper than the 24hr payload
+ *  when a figure is all that is needed — settlement, for instance. */
+export async function fetchPrice(symbol: string): Promise<number | null> {
+  try {
+    const res = await fetch(`${BINANCE_REST_BASE}/api/v3/ticker/price?symbol=${symbol}`, {
+      cache: "no-store"
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const price = Number(json?.price);
+    return Number.isFinite(price) && price > 0 ? price : null;
+  } catch {
+    return null;
+  }
 }
 
 export async function fetchCandles(symbol: string, interval: Interval, limit = 300): Promise<Candle[]> {

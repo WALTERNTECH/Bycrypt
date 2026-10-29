@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
-import { SecretInput } from "@/components/SecretInput";
 import { TelegramButton } from "@/components/TelegramButton";
 import { isValidBitcoinAddress } from "@/lib/btc-address";
 import { formatUsdt } from "@/lib/format";
@@ -13,14 +12,13 @@ export function WithdrawForm({ walletBalance, telegramUrl }: { walletBalance: nu
   const router = useRouter();
   const [amount, setAmount] = useState("");
   const [address, setAddress] = useState("");
-  const [transactionKey, setTransactionKey] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
   if (walletBalance <= 0) {
     return (
-      <div className="rounded-2xl border border-border bg-surface shadow-card p-6 text-center text-xs text-text-secondary">
+      <div className="rounded-lg bg-surface-2 p-6 text-center text-xs text-text-secondary">
         Your wallet balance is empty. Deposit funds or cash out a profitable investment first.
         <div className="mt-3">
           <Link href="/deposit" className="text-sm font-semibold text-brand">
@@ -44,10 +42,6 @@ export function WithdrawForm({ walletBalance, telegramUrl }: { walletBalance: nu
       setError("Enter a valid Bitcoin address (1…, 3… or bc1…).");
       return;
     }
-    if (!transactionKey) {
-      setError("Enter your transaction key.");
-      return;
-    }
 
     setLoading(true);
     const res = await fetch("/api/withdrawals", {
@@ -55,8 +49,7 @@ export function WithdrawForm({ walletBalance, telegramUrl }: { walletBalance: nu
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         amount: parsedAmount,
-        destination_address: address.trim(),
-        transaction_key: transactionKey
+        destination_address: address.trim()
       })
     });
     const data = await res.json();
@@ -72,7 +65,7 @@ export function WithdrawForm({ walletBalance, telegramUrl }: { walletBalance: nu
 
   if (success) {
     return (
-      <div className="rounded-2xl border border-border bg-surface shadow-card p-6 text-center">
+      <div className="rounded-lg bg-surface-2 p-6 text-center">
         <div className="mb-3 flex justify-center">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
         </div>
@@ -87,7 +80,7 @@ export function WithdrawForm({ walletBalance, telegramUrl }: { walletBalance: nu
 
   return (
     <div className="space-y-3">
-      <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-surface shadow-card p-4 space-y-3">
+      <form onSubmit={handleSubmit} className="rounded-lg bg-surface-2 p-4 space-y-3">
         <p className="text-xs text-text-secondary">
           Available: <span className="mono-num font-semibold text-text-primary">{formatUsdt(walletBalance, { withSymbol: true })}</span>
         </p>
@@ -111,12 +104,8 @@ export function WithdrawForm({ walletBalance, telegramUrl }: { walletBalance: nu
             className={inputClass}
             value={address}
             onChange={(e) => setAddress(e.target.value)}
-            placeholder="T..."
+            placeholder="bc1... or 1... or 3..."
           />
-        </FormField>
-
-        <FormField label="Transaction key" hint="The key you set at signup, required to authorize withdrawals.">
-          <SecretInput required value={transactionKey} onChange={setTransactionKey} />
         </FormField>
 
         {error && <p className="text-sm text-negative">{error}</p>}
@@ -126,7 +115,7 @@ export function WithdrawForm({ walletBalance, telegramUrl }: { walletBalance: nu
         </button>
       </form>
 
-      <div className="rounded-2xl border border-border bg-surface shadow-card-2 px-3.5 py-3">
+      <div className="rounded-lg bg-surface-2 px-3.5 py-3">
         <p className="text-xs text-text-secondary">Not sure about the process, or your funds haven't arrived?</p>
         <div className="mt-2">
           <TelegramButton url={telegramUrl} variant="full" label="Guide me on my withdrawal" />

@@ -1,49 +1,79 @@
 /**
- * Position leverage.
+ * Position maths.
  *
- * A position tracks the traded coin's move at 1:20 against the capital
- * the user committed — a 1% move on the coin is a 20% move on the
- * position. Every figure in the app derives from the helpers here so the
- * ratio exists in exactly one place; changing this constant changes
- * every balance, delta, percentage and payout together.
+ * A position tracks its coin at 1:20 against the capital committed — a 1%
+ * move on the coin is a 20% move on the position. Every figure in the app
+ * derives from the helpers here so the ratio exists in exactly one place.
  *
- * Deliberately internal: nothing in the interface names the ratio or the
- * word "leverage". It shapes the numbers, it is not a label.
+ * Two things changed here, and both were bugs rather than preferences:
  *
- * This is used for both the live display AND settlement. The cash-out
- * route recomputes the profit server-side from exchange data at close
- * time, so what a user is shown and what they are paid come from the
- * same formula. The browser never supplies the figure.
+ *   A position has a SIDE. The app hands the user a BUY or SELL signal, so
+ *   a SELL position has to gain when the price falls. Before this, profit
+ *   only ever came from upward moves, which made the sell signal
+ *   decorative.
+ *
+ *   P&L can be NEGATIVE. Profit used to be floored at zero, so a losing
+ *   position returned the stake intact and closing it changed the wallet
+ *   by nothing at all. The position's *value* is still floored at zero —
+ *   a position can lose all of itself but must never reach into the rest
+ *   of the wallet — but the P&L against the stake is now signed.
+ *
+ * These are used for both display AND settlement. The cash-out route
+ * recomputes value server-side from exchange data at close time, so what
+ * a user watches and what they are paid come from the same formula. The
+ * browser never supplies the figure.
  */
 export const LEVERAGE_RATIO = 20;
 
-/**
- * Current indicative value of `principal` given the coin's raw % move.
- * Floored at zero: at 1:20 a 5% adverse move wipes the position out, and
- * a custody balance must never render as a negative number.
- */
-export function leveragedValue(principal: number, rawPct: number): number {
-  return Math.max(0, principal * (1 + (rawPct * LEVERAGE_RATIO) / 100));
+export type Side = "BUY" | "SELL";
+
+export function normalizeSide(value: unknown): Side {
+  return String(value ?? "").toUpperCase() === "SELL" ? "SELL" : "BUY";
+}
+
+/** The coin's move as the position experiences it. A SELL is the mirror. */
+export function directionalPct(rawPct: number, side: Side = "BUY"): number {
+  return side === "SELL" ? -rawPct : rawPct;
 }
 
 /**
- * Profit above principal — what settlement pays on top of the stake.
- * Never negative: a losing position returns the stake rather than
- * clawing back the rest of the wallet.
+ * The coin's move since the position opened. This — not the coin's 24h
+ * change — is the only honest basis for "how is my position doing": the
+ * 24h window describes hours the user may never have been in, and it made
+ * a brand-new position open at an instant profit or loss.
  */
-export function leveragedProfit(principal: number, rawPct: number): number {
-  return Math.max(0, leveragedValue(principal, rawPct) - principal);
+export function moveFromEntry(entryPrice: number | null, livePrice: number | null): number | null {
+  if (!entryPrice || !livePrice || entryPrice <= 0) return null;
+  return ((livePrice - entryPrice) / entryPrice) * 100;
+}
+
+/**
+ * What the position is worth now. Floored at zero: at 1:20 a 5% adverse
+ * move wipes it out, and a balance must never render negative.
+ */
+export function positionValue(principal: number, rawPct: number, side: Side = "BUY"): number {
+  return Math.max(0, principal * (1 + (directionalPct(rawPct, side) * LEVERAGE_RATIO) / 100));
+}
+
+/** Gain or loss against the stake. Negative when the position is down. */
+export function positionPnl(principal: number, rawPct: number, side: Side = "BUY"): number {
+  return positionValue(principal, rawPct, side) - principal;
 }
 
 /**
  * The position's percentage move, derived from the floored value rather
- * than the raw multiplication. Past a total loss the two diverge — a
- * -10% coin move is -200% multiplied out but the position can only lose
- * all of itself — and printing -200% beside a $0.00 value would
+ * than the raw multiplication. Past a total loss the two diverge — a 10%
+ * adverse coin move is -200% multiplied out, but the position can only
+ * lose all of itself — and printing -200% beside a $0.00 value would
  * contradict it. Deriving from the value keeps the pair consistent and
  * bottoms out at -100%.
  */
-export function leveragedPct(principal: number, rawPct: number): number {
+export function positionPct(principal: number, rawPct: number, side: Side = "BUY"): number {
   if (principal <= 0) return 0;
-  return ((leveragedValue(principal, rawPct) - principal) / principal) * 100;
+  return (positionPnl(principal, rawPct, side) / principal) * 100;
+}
+
+/** The coin move that would put a position at `targetPct` gain. */
+export function coinMoveForTarget(targetPct: number): number {
+  return targetPct / LEVERAGE_RATIO;
 }

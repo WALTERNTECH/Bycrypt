@@ -54,20 +54,20 @@ export default async function NotificationsPage() {
       </div>
 
       {items.length === 0 ? (
-        <div className="mt-6 rounded-xl border border-border bg-surface px-4 py-10 text-center">
+        <div className="mt-6 rounded-lg bg-surface-2 px-4 py-10 text-center">
           <p className="text-[13px] font-semibold text-text-primary">Nothing yet</p>
           <p className="mt-1 text-[12px] text-text-secondary">
             Deposits, positions and referral rewards will appear here.
           </p>
         </div>
       ) : (
-        <ul className="mt-4 overflow-hidden rounded-xl border border-border bg-surface">
+        <ul className="mt-4 overflow-hidden rounded-lg bg-surface-2">
           {items.map((n) => {
             const tone = TONE[n.type] ?? { label: "Update", cls: "bg-surface-3 text-text-secondary" };
             return (
               <li
                 key={n.id}
-                className={`border-b border-border px-4 py-3 last:border-b-0 ${
+                className={`px-4 py-3 ${
                   n.is_read ? "" : "bg-brand-dim/40"
                 }`}
               >

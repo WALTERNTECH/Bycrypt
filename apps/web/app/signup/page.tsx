@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthCard } from "@/components/AuthCard";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
-import { SecretInput } from "@/components/SecretInput";
-import { isValidTransactionKey } from "@/lib/transactionKey";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -19,8 +17,6 @@ export default function SignupPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [transactionKey, setTransactionKey] = useState("");
-  const [confirmKey, setConfirmKey] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,14 +33,6 @@ export default function SignupPage() {
       setError("Password must be at least 8 characters.");
       return;
     }
-    if (!isValidTransactionKey(transactionKey)) {
-      setError("Transaction key must be 6-32 letters/numbers.");
-      return;
-    }
-    if (transactionKey !== confirmKey) {
-      setError("Transaction keys don't match.");
-      return;
-    }
 
     setLoading(true);
     try {
@@ -55,7 +43,6 @@ export default function SignupPage() {
           full_name: fullName,
           email,
           password,
-          transaction_key: transactionKey,
           ref_code: refCode || null
         })
       });
@@ -114,22 +101,6 @@ export default function SignupPage() {
             placeholder="••••••••"
           />
         </FormField>
-
-        <div className="rounded-lg border border-border bg-surface shadow-card-2 p-3.5">
-          <p className="text-sm font-medium text-text-primary">Transaction key</p>
-          <p className="mt-0.5 text-xs text-text-secondary">
-            A separate key you'll enter to authorize every deposit and withdrawal — keep it safe,
-            it's not your login password.
-          </p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
-            <FormField label="Set transaction key">
-              <SecretInput required value={transactionKey} onChange={setTransactionKey} placeholder="6-32 letters/numbers" />
-            </FormField>
-            <FormField label="Confirm transaction key">
-              <SecretInput required value={confirmKey} onChange={setConfirmKey} placeholder="Re-enter key" />
-            </FormField>
-          </div>
-        </div>
 
         <label className="flex items-start gap-2 text-xs text-text-secondary">
           <input

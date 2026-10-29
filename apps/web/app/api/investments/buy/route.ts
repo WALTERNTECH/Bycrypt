@@ -2,20 +2,35 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { pickTopGainer } from "@/lib/pickTopGainer";
-import { fetchTickers } from "@/lib/binance";
-import { verifyTransactionKey } from "@/lib/transactionKey";
+import { fetchPrice, isChartInterval, type ChartInterval } from "@/lib/binance";
+import { isTargetGain } from "@/lib/position";
+import { scanMarket } from "@/lib/scan";
 
 const bodySchema = z.object({
   tier_id: z.number().int().positive(),
   amount: z.number().positive(),
-  transaction_key: z.string().min(1),
-  symbol: z.string().max(20).optional()
+  symbol: z.string().max(20).optional(),
+  timeframe: z.string().max(4),
+  target_gain_pct: z.number().positive()
 });
 
-// Allocates wallet balance into a tiered investment. All the actual
-// validation (KYC, sufficient balance, active tier) happens inside the
-// buy_investment() Postgres function — this route just authenticates,
-// checks the transaction key, picks a display symbol, and calls it.
+/**
+ * Opens a position from wallet funds.
+ *
+ * The transaction key is gone. It was a second secret guarding an action
+ * that only moves money between two balances the same person owns, and
+ * every order was one forgotten string away from being impossible.
+ *
+ * The SIDE is not accepted from the browser. The client runs the same
+ * scan to show the user a signal, but the side recorded against the
+ * position is the one this route derives from exchange data at the moment
+ * the order lands — so the position is opened on the signal the platform
+ * actually gave, not on whatever the request claimed. The response
+ * reports the side used, and the client states it on the fill ticket.
+ *
+ * All the money validation (sufficient balance, one position at a time,
+ * active tier) happens inside buy_investment() in Postgres.
+ */
 export async function POST(req: NextRequest) {
   const supabase = createClient();
   const {
@@ -27,15 +42,13 @@ export async function POST(req: NextRequest) {
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("transaction_key_hash")
-    .eq("id", user.id)
-    .single();
-
-  if (!verifyTransactionKey(parsed.data.transaction_key, profile?.transaction_key_hash)) {
-    return NextResponse.json({ error: "Incorrect transaction key." }, { status: 403 });
+  if (!isChartInterval(parsed.data.timeframe)) {
+    return NextResponse.json({ error: "Pick a timeframe first." }, { status: 400 });
   }
+  if (!isTargetGain(parsed.data.target_gain_pct)) {
+    return NextResponse.json({ error: "Pick a target return." }, { status: 400 });
+  }
+  const timeframe = parsed.data.timeframe as ChartInterval;
 
   let tradedSymbol = parsed.data.symbol?.toUpperCase() ?? null;
   if (tradedSymbol) {
@@ -52,28 +65,27 @@ export async function POST(req: NextRequest) {
     const { data: symbols } = await supabase.from("market_symbols").select("symbol").eq("is_active", true);
     tradedSymbol = await pickTopGainer((symbols ?? []).map((s) => s.symbol));
   }
-
-  // Record what the coin cost at the moment the position opened, so the
-  // position chart has a real anchor rather than a guess made later. It is
-  // reference data only — settlement recomputes profit from live prices,
-  // so this value can never move money.
-  let entryPrice: number | null = null;
-  try {
-    if (tradedSymbol) {
-      const t = await fetchTickers([tradedSymbol]);
-      const price = t[tradedSymbol]?.lastPrice;
-      if (Number.isFinite(price) && price > 0) entryPrice = price;
-    }
-  } catch {
-    // The position still opens; the chart falls back to the first candle
-    // after start_date rather than blocking a trade on a price lookup.
+  if (!tradedSymbol) {
+    return NextResponse.json({ error: "No market is available to trade right now." }, { status: 503 });
   }
+
+  // Re-scan server-side. This is the side the position is opened on.
+  const scan = await scanMarket(tradedSymbol, timeframe);
+  const side = scan?.side ?? "BUY";
+
+  // Record what the coin cost at the moment the position opened: it is
+  // the basis every P&L figure is measured from afterwards, so a position
+  // without it has nothing honest to measure against.
+  const entryPrice = await fetchPrice(tradedSymbol);
 
   const { data: investmentId, error } = await supabase.rpc("buy_investment", {
     p_tier_id: parsed.data.tier_id,
     p_amount: parsed.data.amount,
     p_traded_symbol: tradedSymbol,
-    p_entry_price: entryPrice
+    p_entry_price: entryPrice,
+    p_side: side,
+    p_target_gain_pct: parsed.data.target_gain_pct,
+    p_timeframe: timeframe
   });
 
   if (error) {
@@ -88,5 +100,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: reason ? messages[reason] : "Could not complete that trade." }, { status: 400 });
   }
 
-  return NextResponse.json({ investment_id: investmentId, traded_symbol: tradedSymbol }, { status: 201 });
+  return NextResponse.json(
+    {
+      investment_id: investmentId,
+      traded_symbol: tradedSymbol,
+      side,
+      entry_price: entryPrice,
+      target_gain_pct: parsed.data.target_gain_pct,
+      timeframe,
+      scan_change_pct: scan ? Number(scan.changePct.toFixed(2)) : null
+    },
+    { status: 201 }
+  );
 }

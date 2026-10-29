@@ -8,9 +8,13 @@ import { RefreshButton } from "./RefreshButton";
  *
  * Laid out the way an exchange lays it out: identity on the left, search
  * taking the middle, and a row of single-purpose icons on the right.
- * Everything here is one tap to somewhere — there is no decoration in
- * this bar, because a header that costs vertical space on a phone has to
- * earn all of it.
+ * Everything here is one tap to somewhere — a header that costs vertical
+ * space on a phone has to earn all of it.
+ *
+ * The avatar is a person glyph, not the first letter of the account name.
+ * An initial in a circle reads as a placeholder for a photo that never
+ * arrives; the glyph is what Bybit uses and it says "you" without
+ * pretending to be anything else.
  */
 export async function TopBar() {
   const supabase = createClient();
@@ -18,10 +22,7 @@ export async function TopBar() {
     data: { user }
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { data: symbols }, { count: unread }] = await Promise.all([
-    user
-      ? supabase.from("profiles").select("full_name").eq("id", user.id).maybeSingle()
-      : Promise.resolve({ data: null }),
+  const [{ data: symbols }, { count: unread }] = await Promise.all([
     supabase.from("market_symbols").select("symbol, display_name").eq("is_active", true).order("sort_order"),
     user
       ? supabase
@@ -32,17 +33,23 @@ export async function TopBar() {
       : Promise.resolve({ count: 0 })
   ]);
 
-  const name = (profile?.full_name || user?.email || "").trim();
-  const initial = (name || "?").charAt(0).toUpperCase();
-
   return (
     <div className="flex h-14 items-center gap-2.5 px-3 sm:px-5">
       <Link
         href="/account"
         aria-label="Account"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-3 text-[13px] font-bold text-text-primary"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-3 transition-colors hover:bg-[#E4E5EA]"
       >
-        {initial}
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={1.8}
+          className="h-[19px] w-[19px] text-text-primary"
+        >
+          <circle cx="12" cy="8.2" r="3.6" />
+          <path d="M4.8 20a7.2 7.2 0 0 1 14.4 0" strokeLinecap="round" />
+        </svg>
       </Link>
 
       <SearchPill symbols={symbols ?? []} />
@@ -50,7 +57,10 @@ export async function TopBar() {
       <div className="flex shrink-0 items-center gap-0.5">
         <IconLink href="/deposit" label="Deposit address">
           {/* scan */}
-          <path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3" strokeLinecap="round" />
+          <path
+            d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"
+            strokeLinecap="round"
+          />
           <path d="M4 12h16" strokeLinecap="round" />
         </IconLink>
 

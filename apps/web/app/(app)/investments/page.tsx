@@ -4,7 +4,8 @@ import { LiveInvestmentValue } from "@/components/LiveInvestmentValue";
 import { ClosePositionButton } from "@/components/ClosePositionButton";
 import { SettlementValue } from "@/components/SettlementValue";
 import { ButtonLink } from "@/components/ui";
-import { formatUsdt, formatPct, formatDate, daysRemaining } from "@/lib/format";
+import { formatUsdt, formatPct, formatDate } from "@/lib/format";
+import { mapPositionRow } from "@/lib/position";
 
 export default async function InvestmentsPage() {
   const supabase = createClient();
@@ -14,7 +15,7 @@ export default async function InvestmentsPage() {
 
   const { data: investments } = await supabase
     .from("investments")
-    .select("*, investment_tiers(name, lockup_days, min_return_pct)")
+    .select("*")
     .eq("user_id", user!.id)
     .order("created_at", { ascending: false });
 
@@ -24,16 +25,17 @@ export default async function InvestmentsPage() {
     <div className="px-4 pt-4 sm:px-6">
       <h1 className="text-xl font-extrabold text-text-primary">Positions</h1>
       <p className="mt-1 text-xs leading-relaxed text-text-secondary">
-        7-day plans, 40% minimum return, uncapped upside. Close a position at any time to move its
-        value back into your Krypton wallet — withdrawals are made from the wallet.
+        One position runs at a time. It closes itself at the return you set, and you can close it by
+        hand at any point — either way the value lands in your Krypton wallet, and withdrawals are
+        made from there.
       </p>
 
-      <div className="mt-4 grid gap-3">
+      <div className="mt-4 space-y-5">
         {rows.length === 0 && (
-          <div className="rounded-2xl border border-border bg-surface p-8 text-center shadow-card">
+          <div className="rounded-lg bg-surface-2 p-8 text-center">
             <p className="text-sm font-bold text-text-primary">No positions yet</p>
             <p className="mt-1.5 text-xs text-text-secondary">
-              Deposit USDT, then open a position from any market chart.
+              Fund your wallet, then open one from any market chart.
             </p>
             <div className="mt-4 flex justify-center">
               <ButtonLink href="/trade" variant="primary" size="md">
@@ -44,66 +46,72 @@ export default async function InvestmentsPage() {
         )}
 
         {rows.map((inv) => {
-          const tier = inv.investment_tiers as any;
-          const principal = parseFloat(String(inv.amount));
-          const accrued = parseFloat(String(inv.accrued_return));
-          const settleValue = principal + accrued;
-          const settlePct = principal > 0 ? (accrued / principal) * 100 : 0;
+          const row = mapPositionRow(inv);
           const isOpen = inv.status !== "withdrawn";
+          const finalPct = row.principal > 0 ? (row.accrued / row.principal) * 100 : 0;
+          const won = row.accrued >= 0;
 
           return (
-            <div key={inv.id} className="overflow-hidden rounded-2xl border border-border bg-surface shadow-card">
-              <div className="flex items-start justify-between gap-3 border-b border-border px-4 py-3">
-                <div>
-                  <p className="text-sm font-bold text-text-primary">
-                    {tier?.name ?? "Investment"}
-                    {inv.traded_symbol && (
-                      <span className="ml-1.5 font-medium text-text-secondary">
-                        · {inv.traded_symbol.replace("USDT", "")}
+            <div key={row.id}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-1.5 text-sm font-bold text-text-primary">
+                    {row.symbol ? row.symbol.replace("USDT", "/USDT") : "Position"}
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[10px] font-bold ${
+                        row.side === "SELL" ? "bg-negative-dim text-negative" : "bg-positive-dim text-positive"
+                      }`}
+                    >
+                      {row.side}
+                    </span>
+                    {row.timeframe && (
+                      <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] font-bold text-text-secondary">
+                        {row.timeframe}
                       </span>
                     )}
                   </p>
                   <p className="mt-0.5 text-[10px] text-text-tertiary">
-                    Opened {formatDate(inv.start_date)} · Matures {formatDate(inv.maturity_date)}
+                    Opened {formatDate(row.startedAt)}
+                    {row.targetGainPct !== null && <> · target +{row.targetGainPct}%</>}
+                    {!isOpen && inv.closed_at && <> · closed {formatDate(inv.closed_at)}</>}
                   </p>
                 </div>
                 <StatusBadge status={inv.status} />
               </div>
 
-              <div className="grid grid-cols-3 divide-x divide-border">
-                <div className="px-3 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">Staked</p>
-                  <p className="mono-num mt-1 text-sm font-bold text-text-primary">
-                    {formatUsdt(principal, { withSymbol: true })}
-                  </p>
-                </div>
+              <div className="mt-2.5 grid grid-cols-3 gap-2">
+                <Cell label="Staked" value={formatUsdt(row.principal, { withSymbol: true })} />
 
-                <div className="px-3 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
+                <div className="rounded-lg bg-surface-2 px-3 py-2.5">
+                  <p className="text-[10px] font-medium text-text-tertiary">
                     {isOpen ? "Live value" : "Final value"}
                   </p>
-                  {isOpen && inv.traded_symbol ? (
-                    <LiveInvestmentValue symbol={inv.traded_symbol} principal={principal} confirmedAccrued={accrued} />
+                  {isOpen && row.symbol ? (
+                    <LiveInvestmentValue row={row} />
                   ) : (
                     <p className="mono-num mt-1 text-sm font-bold text-text-primary">
-                      {formatUsdt(settleValue, { withSymbol: true })}
+                      {formatUsdt(row.principal + row.accrued, { withSymbol: true })}
                     </p>
                   )}
                 </div>
 
-                <div className="px-3 py-3">
-                  <p className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">
-                    {isOpen ? "Settles at" : "Return"}
+                <div className="rounded-lg bg-surface-2 px-3 py-2.5">
+                  <p className="text-[10px] font-medium text-text-tertiary">
+                    {isOpen ? "Settles at" : won ? "Gain" : "Loss"}
                   </p>
                   {isOpen ? (
-                    <SettlementValue symbol={inv.traded_symbol} principal={principal} accrued={accrued} />
+                    <SettlementValue row={row} />
                   ) : (
                     <>
                       <p className="mono-num mt-1 text-sm font-bold text-text-primary">
-                        {formatUsdt(accrued, { withSymbol: true })}
+                        {formatUsdt(Math.abs(row.accrued), { withSymbol: true })}
                       </p>
-                      <p className={`mono-num text-[10px] font-bold ${accrued > 0 ? "text-positive" : "text-text-tertiary"}`}>
-                        {formatPct(settlePct, { signed: true })}
+                      <p
+                        className={`mono-num text-[10px] font-bold ${
+                          won ? "text-positive" : "text-negative"
+                        }`}
+                      >
+                        {formatPct(finalPct, { signed: true })}
                       </p>
                     </>
                   )}
@@ -111,22 +119,23 @@ export default async function InvestmentsPage() {
               </div>
 
               {isOpen && (
-                <div className="border-t border-border p-3">
-                  <div className="mb-2 flex items-center justify-between text-[10px]">
-                    <span className="text-text-tertiary">
-                      {inv.status === "active" ? `${daysRemaining(inv.maturity_date)} remaining` : "Matured"}
-                    </span>
-                    <span className="text-text-tertiary">
-                      {tier?.min_return_pct ? `${parseFloat(tier.min_return_pct)}% floor · uncapped` : ""}
-                    </span>
-                  </div>
-                  <ClosePositionButton investmentId={inv.id} symbol={inv.traded_symbol} principal={principal} accrued={accrued} />
+                <div className="mt-2.5">
+                  <ClosePositionButton row={row} />
                 </div>
               )}
             </div>
           );
         })}
       </div>
+    </div>
+  );
+}
+
+function Cell({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-surface-2 px-3 py-2.5">
+      <p className="text-[10px] font-medium text-text-tertiary">{label}</p>
+      <p className="mono-num mt-1 text-sm font-bold text-text-primary">{value}</p>
     </div>
   );
 }
