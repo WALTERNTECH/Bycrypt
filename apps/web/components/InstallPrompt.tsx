@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 /**
  * Install prompt.
@@ -31,6 +32,13 @@ import { useEffect, useState } from "react";
  */
 
 const DISMISS_KEY = "krypton-install-dismissed";
+
+// Routes where the banner must stay out of the way. It is pinned to the
+// bottom of the viewport, which on a form is exactly where the last
+// fields and the submit button are — on signup it was covering the
+// transaction key and the terms checkbox. Installing is also a poor ask
+// before someone has an account; it is offered once they are inside.
+const SUPPRESSED = ["/login", "/signup", "/forgot-password", "/reset-password"];
 const DISMISS_DAYS = 14;
 const MANUAL_FALLBACK_MS = 3500;
 
@@ -89,6 +97,7 @@ function detectInAppBrowser(): string | null {
 }
 
 export function InstallPrompt() {
+  const pathname = usePathname();
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
   const [mode, setMode] = useState<Mode | null>(null);
   const [installing, setInstalling] = useState(false);
@@ -173,6 +182,7 @@ export function InstallPrompt() {
   }
 
   if (!mode) return null;
+  if (SUPPRESSED.some((route) => pathname === route || pathname.startsWith(route + "/"))) return null;
 
   return (
     <div data-install-prompt className="fixed inset-x-0 bottom-0 z-[60] flex justify-center px-3 pb-[calc(env(safe-area-inset-bottom)+12px)]">
