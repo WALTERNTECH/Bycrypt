@@ -75,7 +75,15 @@ export async function POST(req: NextRequest) {
 
   const { error: seatError } = await admin
     .from("admin_users")
-    .insert({ id: created.user.id, full_name: parsed.data.full_name, is_active: true });
+    // Explicitly super_admin. The column defaults to 'operations', and
+    // relying on that default locked the only operator out of config —
+    // with one admin seat, that seat has to hold every permission.
+    .insert({
+      id: created.user.id,
+      full_name: parsed.data.full_name,
+      is_active: true,
+      role: "super_admin"
+    });
 
   if (seatError) {
     // Don't leave a usable login that isn't an admin — roll the auth user
