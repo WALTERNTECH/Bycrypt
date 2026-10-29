@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isValidTxHash, normalizeTxHash } from "@/lib/tron-address";
+import { isValidTxid, normalizeTxid } from "@/lib/btc-address";
 import { runDepositVerification } from "@/lib/depositVerification";
 import { verifyTransactionKey } from "@/lib/transactionKey";
 import { sendAdminAlert } from "@/lib/adminEmail";
@@ -10,7 +10,7 @@ import { sendAdminAlert } from "@/lib/adminEmail";
 const bodySchema = z.object({
   tx_hash: z.string().min(10),
   transaction_key: z.string().min(1),
-  network: z.enum(["TRC20"]).default("TRC20"),
+  network: z.enum(["BTC"]).default("BTC"),
   claimed_amount: z.number().positive().nullable().optional()
 });
 
@@ -50,8 +50,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Incorrect transaction key." }, { status: 403 });
   }
 
-  const txHash = normalizeTxHash(parsed.data.tx_hash);
-  if (!isValidTxHash(txHash)) {
+  const txHash = normalizeTxid(parsed.data.tx_hash);
+  if (!isValidTxid(txHash)) {
     return NextResponse.json({ error: "That doesn't look like a valid transaction hash." }, { status: 400 });
   }
 
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
   // independent of whether automatic verification below succeeds.
   const { data: admins } = await admin.from("admin_users").select("id").eq("is_active", true);
   if (admins && admins.length > 0) {
-    const amountText = parsed.data.claimed_amount ? `${parsed.data.claimed_amount} USDT` : "an unspecified amount";
+    const amountText = parsed.data.claimed_amount ? `$${parsed.data.claimed_amount}` : "an unspecified amount";
     await admin.from("notifications").insert(
       admins.map((a) => ({
         admin_id: a.id,

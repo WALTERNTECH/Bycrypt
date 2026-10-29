@@ -1,17 +1,21 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { verifyTrc20Deposit, USDT_TRC20_CONTRACT_MAINNET } from "@/lib/trongrid";
+import { verifyBitcoinDeposit } from "@/lib/bitcoin";
 
 const REASON_MESSAGES: Record<string, string> = {
-  transaction_not_found: "We couldn't find that transaction on the TRON network yet. Double-check the hash, or wait a moment and try again.",
-  transaction_failed: "That transaction failed on-chain, so it can't be credited.",
-  no_matching_transfer_event: "That transaction doesn't contain a USDT (TRC20) transfer.",
-  wrong_destination_address: "That transaction wasn't sent to Krypton's deposit address.",
-  trongrid_unreachable: "We couldn't reach the TRON network right now. We'll keep trying — check back shortly.",
+  transaction_not_found: "We couldn't find that transaction on the Bitcoin network yet. Double-check the transaction ID, or wait a moment and try again.",
+  wrong_destination_address: "That transaction doesn't pay Krypton's deposit address.",
+  explorer_unreachable: "We couldn't reach the Bitcoin network right now. We'll keep trying — check back shortly.",
+  rate_unavailable: "We couldn't price your BTC just now. We'll keep trying — check back shortly.",
   verification_error: "Something went wrong verifying this deposit. We'll keep trying — check back shortly.",
   insufficient_confirmations: "Your transaction was found and is waiting for more network confirmations."
 };
 
-const RETRYABLE_REASONS = new Set(["trongrid_unreachable", "verification_error", "insufficient_confirmations"]);
+const RETRYABLE_REASONS = new Set([
+  "explorer_unreachable",
+  "rate_unavailable",
+  "verification_error",
+  "insufficient_confirmations"
+]);
 
 export interface DepositVerificationOutcome {
   status: "confirmed" | "pending_verification" | "rejected";
@@ -62,22 +66,32 @@ export async function runDepositVerification(depositId: string): Promise<Deposit
     };
   }
 
-  const result = await verifyTrc20Deposit(deposit.tx_hash, receivingAddress, USDT_TRC20_CONTRACT_MAINNET);
+  const result = await verifyBitcoinDeposit(deposit.tx_hash, receivingAddress);
 
   if (result.ok) {
     // Single atomic call — status flip + wallet credit + referral bonus
     // all happen in one transaction (confirm_deposit), so a mid-flight
     // failure can never leave a deposit "confirmed" with the wallet
     // never actually credited.
+    // Record what arrived on-chain and the rate it was priced at, so the
+    // credited USD figure can always be reconciled back to the block.
+    await admin
+      .from("deposits")
+      .update({ asset_amount: result.btcAmount, rate_usd: result.rateUsd })
+      .eq("id", depositId);
+
     const { error: confirmError } = await admin.rpc("confirm_deposit", {
       p_deposit_id: depositId,
-      p_amount: result.amount
+      p_amount: result.usdAmount
     });
     if (confirmError) {
       return { status: "pending_verification", message: "Verified on-chain — crediting your wallet now, check back shortly." };
     }
 
-    return { status: "confirmed", message: `Deposit of ${result.amount} USDT confirmed and added to your wallet.` };
+    return {
+      status: "confirmed",
+      message: `Deposit of ${result.btcAmount} BTC confirmed — $${result.usdAmount} added to your wallet.`
+    };
   }
 
   const reason = result.reason ?? "verification_error";

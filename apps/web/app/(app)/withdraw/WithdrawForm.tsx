@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
 import { SecretInput } from "@/components/SecretInput";
 import { TelegramButton } from "@/components/TelegramButton";
-import { isValidTronAddress } from "@/lib/tron-address";
+import { isValidBitcoinAddress } from "@/lib/btc-address";
 import { formatUsdt } from "@/lib/format";
 
 export function WithdrawForm({ walletBalance, telegramUrl }: { walletBalance: number; telegramUrl: string }) {
@@ -37,11 +37,11 @@ export function WithdrawForm({ walletBalance, telegramUrl }: { walletBalance: nu
 
     const parsedAmount = parseFloat(amount);
     if (Number.isNaN(parsedAmount) || parsedAmount <= 0 || parsedAmount > walletBalance) {
-      setError(`Enter an amount between 0 and ${formatUsdt(walletBalance)} USDT.`);
+      setError(`Enter an amount between 0 and ${formatUsdt(walletBalance)}.`);
       return;
     }
-    if (!isValidTronAddress(address)) {
-      setError("Enter a valid TRC20 (TRON) wallet address.");
+    if (!isValidBitcoinAddress(address)) {
+      setError("Enter a valid Bitcoin address (1…, 3… or bc1…).");
       return;
     }
     if (!transactionKey) {
@@ -92,7 +92,7 @@ export function WithdrawForm({ walletBalance, telegramUrl }: { walletBalance: nu
           Available: <span className="mono-num font-semibold text-text-primary">{formatUsdt(walletBalance, { withSymbol: true })}</span>
         </p>
 
-        <FormField label="Amount (USDT)">
+        <FormField label="Amount (USD)">
           <input
             inputMode="decimal"
             className={inputClass}
@@ -102,7 +102,10 @@ export function WithdrawForm({ walletBalance, telegramUrl }: { walletBalance: nu
           />
         </FormField>
 
-        <FormField label="Destination TRC20 wallet address" hint="Funds are sent only to a TRON (TRC20) address you control.">
+        <FormField
+          label="Destination Bitcoin address"
+          hint="Paid in BTC on the Bitcoin network, to an address you control. Double-check it — Bitcoin payments cannot be reversed."
+        >
           <input
             required
             className={inputClass}

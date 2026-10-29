@@ -29,6 +29,7 @@ export default async function AdminDepositsPage() {
               <th className="px-5 py-3 font-medium">Network</th>
               <th className="px-5 py-3 font-medium">Tx hash</th>
               <th className="px-5 py-3 font-medium">Claimed</th>
+              <th className="px-5 py-3 font-medium">Received</th>
               <th className="px-5 py-3 font-medium">Credited</th>
               <th className="px-5 py-3 font-medium">Status</th>
               <th className="px-5 py-3 font-medium">Actions</th>
@@ -39,10 +40,24 @@ export default async function AdminDepositsPage() {
               <tr key={d.id} className={`border-t border-border/40 ${d.status === "pending_verification" ? "bg-brand/[0.03]" : ""}`}>
                 <td className="px-5 py-3 text-text-secondary">{formatDateTime(d.submitted_at)}</td>
                 <td className="px-5 py-3 text-text-primary">{d.profiles?.full_name ?? "—"}</td>
-                <td className="px-5 py-3 text-text-secondary">{d.network ?? "TRC20"}</td>
+                <td className="px-5 py-3 text-text-secondary">{d.network ?? "BTC"}</td>
                 <td className="px-5 py-3 font-mono text-xs text-text-secondary">{truncateMiddle(d.tx_hash)}</td>
                 <td className="mono-num px-5 py-3 text-text-secondary">
                   {d.claimed_amount ? formatUsdt(d.claimed_amount, { withSymbol: true }) : "—"}
+                </td>
+                <td className="mono-num px-5 py-3 text-text-secondary">
+                  {d.asset_amount ? (
+                    <>
+                      {Number(d.asset_amount).toFixed(8)} BTC
+                      {d.rate_usd && (
+                        <span className="block text-[10px] text-text-tertiary">
+                          @ ${Number(d.rate_usd).toLocaleString()}
+                        </span>
+                      )}
+                    </>
+                  ) : (
+                    "—"
+                  )}
                 </td>
                 <td className="mono-num px-5 py-3 font-semibold text-text-primary">
                   {d.amount ? formatUsdt(d.amount, { withSymbol: true }) : "—"}
@@ -62,7 +77,7 @@ export default async function AdminDepositsPage() {
             ))}
             {(deposits ?? []).length === 0 && (
               <tr>
-                <td colSpan={8} className="px-5 py-8 text-center text-text-secondary">
+                <td colSpan={9} className="px-5 py-8 text-center text-text-secondary">
                   No deposits yet.
                 </td>
               </tr>

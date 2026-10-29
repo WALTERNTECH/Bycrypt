@@ -3,18 +3,20 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
-import { isValidTronAddress } from "@/lib/tron-address";
+import { isValidBitcoinAddress } from "@/lib/btc-address";
 
 const LABELS: Record<string, string> = {
-  receiving_wallet_address: "Receiving TRC20 wallet address",
-  min_deposit_usdt: "Minimum deposit (USDT)",
+  receiving_wallet_address: "Receiving Bitcoin (BTC) address",
+  min_deposit_usdt: "Minimum deposit (USD)",
   platform_name: "Platform name",
   telegram_support_url: "Telegram support link"
 };
 
 const HINTS: Record<string, string> = {
-  receiving_wallet_address: "Shown to every user in the deposit flow. Must be a TRC20 (TRON) address you control.",
-  min_deposit_usdt: "Enforced client-side only for now — verification always trusts the on-chain amount.",
+  receiving_wallet_address:
+    "Shown to every user in the deposit flow. Must be a Bitcoin mainnet address you control — legacy (1…), P2SH (3…) or bech32 (bc1…). Deposits are verified against this exact address, so a wrong value means no deposit can ever confirm.",
+  min_deposit_usdt:
+    "In US dollars. Enforced client-side only — verification always credits the on-chain BTC priced at confirmation time.",
   platform_name: "Displayed across the public site.",
   telegram_support_url: "Where the Telegram support button (navbar, footer, deposit page) sends users."
 };
@@ -31,8 +33,8 @@ export function ConfigForm({ configKey, initialValue }: { configKey: string; ini
     setError(null);
     setSaved(false);
 
-    if (configKey === "receiving_wallet_address" && !isValidTronAddress(value)) {
-      setError("Enter a valid TRC20 (TRON) address.");
+    if (configKey === "receiving_wallet_address" && !isValidBitcoinAddress(value)) {
+      setError("Enter a valid Bitcoin address (1…, 3… or bc1…).");
       return;
     }
 

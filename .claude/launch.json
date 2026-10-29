@@ -1,0 +1,107 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "powergeekz-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:\\Users\\USER\\AppData\\Local\\Temp\\claude\\C--Users-USER-Bycrypt\\fa422e02-291e-46c3-a47f-89d27e57672d\\scratchpad\\preview-server\\server.js",
+        "C:\\Users\\USER\\POWERGEEKZ-work\\POWERGEEKZ",
+        "5055"
+      ],
+      "port": 5055
+    },
+    {
+      "name": "powergeekz-new",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:\\Users\\USER\\POWERGEEKZ-work\\powergeekz-site\\node_modules\\astro\\bin\\astro.mjs",
+        "dev",
+        "--root",
+        "C:\\Users\\USER\\POWERGEEKZ-work\\powergeekz-site",
+        "--port",
+        "4321"
+      ],
+      "port": 4321
+    },
+    {
+      "name": "powergeekz-dist",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:\\Users\\USER\\POWERGEEKZ-work\\powergeekz-site\\node_modules\\astro\\bin\\astro.mjs",
+        "preview",
+        "--root",
+        "C:\\Users\\USER\\POWERGEEKZ-work\\powergeekz-site",
+        "--port",
+        "4322"
+      ],
+      "port": 4322
+    },
+    {
+      "name": "trevor-fashions",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:\\Users\\USER\\trevor-fashions\\dev\\server.mjs",
+        "--memory"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "swiftpal-api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "C:\\Users\\USER\\SwiftPal\\api",
+        "run",
+        "dev"
+      ],
+      "port": 4000
+    },
+    {
+      "name": "swiftpal-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "C:\\Users\\USER\\SwiftPal\\web",
+        "run",
+        "dev"
+      ],
+      "port": 3000
+    },
+    {
+      "name": "tradekit",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:\\Users\\USER\\AppData\\Local\\Temp\\claude\\C--Users-USER-Bycrypt\\c7ab5cda-d876-4b6e-9687-14007bb0c03e\\scratchpad\\run-tradekit-local.mjs"
+      ],
+      "port": 4100
+    },
+    {
+      "name": "konnect-brandlab",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:/Users/USER/Konnect/.local/static.mjs"
+      ],
+      "port": 5199
+    },
+    {
+      "name": "fpesa-bot",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "C:\\Users\\USER\\fpesa.markets",
+        "run",
+        "dev"
+      ],
+      "port": 5180
+    },
+    {
+      "name": "konnect",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:/Users/USER/Konnect/.local/run-local.mjs"
+      ],
+      "port": 5173
+    }
+  ]
+}

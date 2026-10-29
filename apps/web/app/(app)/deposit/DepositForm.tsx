@@ -5,15 +5,14 @@ import { useRouter } from "next/navigation";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
 import { SecretInput } from "@/components/SecretInput";
 import { TelegramButton } from "@/components/TelegramButton";
-import { isValidTxHash } from "@/lib/tron-address";
+import { isValidTxid } from "@/lib/btc-address";
 
-const PLACEHOLDER_ADDRESS = "REPLACE_WITH_CLIENT_TRC20_WALLET_ADDRESS";
+const PLACEHOLDER_ADDRESS = "REPLACE_WITH_CLIENT_BTC_WALLET_ADDRESS";
 
-const NETWORKS = [
-  { value: "TRC20", label: "TRON (TRC20)", enabled: true },
-  { value: "BEP20", label: "BNB Smart Chain (BEP20)", enabled: false },
-  { value: "ERC20", label: "Ethereum (ERC20)", enabled: false }
-] as const;
+// Bitcoin mainnet only. Sending BTC over another chain, or a different
+// asset to a Bitcoin address, loses the funds permanently — so there is
+// deliberately nothing else to pick here.
+const NETWORKS = [{ value: "BTC", label: "Bitcoin (BTC)", enabled: true }] as const;
 
 export function DepositForm({
   depositAddress,
@@ -27,16 +26,41 @@ export function DepositForm({
   const router = useRouter();
   const [step, setStep] = useState<1 | 2 | "generating" | 3 | 4>(1);
   const [amount, setAmount] = useState("");
-  const [network, setNetwork] = useState<string>("TRC20");
+  const [network, setNetwork] = useState<string>("BTC");
   const [txHash, setTxHash] = useState("");
   const [transactionKey, setTransactionKey] = useState("");
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ deposit_id: string; status: string; message: string } | null>(null);
+  const [btcRate, setBtcRate] = useState<number | null>(null);
   const pollCount = useRef(0);
 
   const addressNotReady = !depositAddress || depositAddress === PLACEHOLDER_ADDRESS;
+
+  // The wallet is denominated in dollars but the deposit arrives in BTC,
+  // so the dollar figure has to be shown as an amount of BTC, or the user
+  // has no way to know what to send. Refreshed while they are on the page
+  // because the rate moves.
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      try {
+        const res = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT");
+        const json = await res.json();
+        const price = Number(json?.price);
+        if (!cancelled && Number.isFinite(price) && price > 0) setBtcRate(price);
+      } catch {
+        // Leave the estimate hidden rather than show a stale number.
+      }
+    }
+    load();
+    const id = setInterval(load, 60_000);
+    return () => {
+      cancelled = true;
+      clearInterval(id);
+    };
+  }, []);
 
   // Brief "generating address" beat before revealing it — feels like a
   // real provisioning step rather than an instant static reveal.
@@ -65,8 +89,8 @@ export function DepositForm({
     e.preventDefault();
     setError(null);
 
-    if (!isValidTxHash(txHash)) {
-      setError("That doesn't look like a valid transaction hash (64 hex characters).");
+    if (!isValidTxid(txHash)) {
+      setError("That doesn't look like a valid Bitcoin transaction ID (64 hex characters).");
       return;
     }
     if (!transactionKey) {
@@ -151,9 +175,11 @@ export function DepositForm({
       {/* Step 1 — amount */}
       <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
         <p className="text-sm font-semibold text-text-primary">1. How much tradable capital?</p>
-        <p className="mt-1 text-xs text-text-secondary">The amount of USDT you plan to send. Minimum {minDeposit} USDT.</p>
+        <p className="mt-1 text-xs text-text-secondary">
+          How much you want to fund, in US dollars. Minimum ${minDeposit}.
+        </p>
         <div className="mt-3">
-          <FormField label="Amount (USDT)">
+          <FormField label="Amount (USD)">
             <input
               inputMode="decimal"
               className={inputClass}
@@ -162,6 +188,15 @@ export function DepositForm({
               placeholder={String(minDeposit)}
             />
           </FormField>
+          {btcRate && parseFloat(amount) > 0 && (
+            <p className="mt-2 text-xs text-text-secondary">
+              ≈ <span className="mono-num font-bold text-text-primary">
+                {(parseFloat(amount) / btcRate).toFixed(8)} BTC
+              </span>{" "}
+              at ${btcRate.toLocaleString(undefined, { maximumFractionDigits: 0 })}/BTC. Your wallet is
+              credited at the rate when your transaction confirms, so the final figure may differ slightly.
+            </p>
+          )}
         </div>
         {step === 1 && (
           <button
@@ -178,7 +213,7 @@ export function DepositForm({
       {(step === 2 || step === 3 || step === 4) && (
         <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
           <p className="text-sm font-semibold text-text-primary">2. Choose network</p>
-          <p className="mt-1 text-xs text-text-secondary">Only send USDT on the network you select below.</p>
+          <p className="mt-1 text-xs text-text-secondary">Bitcoin mainnet is the only supported network.</p>
           <div className="mt-3 grid gap-2">
             {NETWORKS.map((n) => (
               <button
@@ -205,15 +240,16 @@ export function DepositForm({
       {/* Step 3 — address */}
       {(step === 3 || step === 4) && (
         <div className="rounded-2xl border border-border bg-surface shadow-card p-4">
-          <p className="text-sm font-semibold text-text-primary">3. Send USDT ({network})</p>
+          <p className="text-sm font-semibold text-text-primary">3. Send BTC (Bitcoin Network)</p>
           <p className="mt-1 text-xs text-text-secondary">
-            Send only USDT on the {network} network to this address — other networks or assets cannot be recovered.
+            Send only BTC on the Bitcoin network to this address. Funds sent on another network, or in
+            another asset, cannot be recovered.
           </p>
 
           <div className="mt-3 rounded-lg border border-border bg-surface shadow-card-2 px-3.5 py-3">
-            <p className="text-xs font-semibold text-text-primary">Don't have USDT yet?</p>
+            <p className="text-xs font-semibold text-text-primary">Don't have BTC yet?</p>
             <p className="mt-1 text-xs leading-relaxed text-text-secondary">
-              Buy USDT on an exchange like Binance or OKX first, withdraw it on the {network} network,
+              Buy Bitcoin on an exchange like Binance or OKX first, withdraw it on the Bitcoin network,
               then deposit it into your Krypton wallet using the address below. Krypton Support can
               walk you through both steps on Telegram if you're not sure how.
             </p>
@@ -262,7 +298,7 @@ export function DepositForm({
             deposit by hand — your wallet is credited as soon as either check clears.
           </p>
           <div className="mt-3 space-y-3">
-            <FormField label="Transaction hash">
+            <FormField label="Transaction ID (txid)">
               <input
                 required
                 className={inputClass}

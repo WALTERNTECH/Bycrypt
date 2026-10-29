@@ -1,17 +1,21 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { verifyTrc20Deposit, USDT_TRC20_CONTRACT_MAINNET } from "@/lib/trongrid";
+import { verifyBitcoinDeposit } from "@/lib/bitcoin";
 
 const REASON_MESSAGES: Record<string, string> = {
-  transaction_not_found: "Transaction not found on-chain yet.",
-  transaction_failed: "Transaction failed on-chain.",
-  no_matching_transfer_event: "No matching USDT (TRC20) transfer event.",
-  wrong_destination_address: "Sent to the wrong address.",
-  trongrid_unreachable: "Couldn't reach TronGrid — try again shortly.",
+  transaction_not_found: "Transaction not found on the Bitcoin network.",
+  wrong_destination_address: "No output pays the configured receiving address.",
+  explorer_unreachable: "Couldn't reach the block explorer — try again shortly.",
+  rate_unavailable: "BTC/USD rate unavailable — try again shortly.",
   verification_error: "Verification error — try again shortly.",
-  insufficient_confirmations: "Found on-chain, awaiting more confirmations."
+  insufficient_confirmations: "Waiting for more confirmations."
 };
 
-const RETRYABLE_REASONS = new Set(["trongrid_unreachable", "verification_error", "insufficient_confirmations"]);
+const RETRYABLE_REASONS = new Set([
+  "explorer_unreachable",
+  "rate_unavailable",
+  "verification_error",
+  "insufficient_confirmations"
+]);
 
 export interface DepositVerificationOutcome {
   status: "confirmed" | "pending_verification" | "rejected";
@@ -50,21 +54,31 @@ export async function runDepositVerification(depositId: string): Promise<Deposit
     return { status: "pending_verification", message: "Receiving wallet address isn't configured yet." };
   }
 
-  const result = await verifyTrc20Deposit(deposit.tx_hash, receivingAddress, USDT_TRC20_CONTRACT_MAINNET);
+  const result = await verifyBitcoinDeposit(deposit.tx_hash, receivingAddress);
 
   if (result.ok) {
     // Single atomic call — status flip + wallet credit + referral bonus
     // all happen in one transaction, so a mid-flight failure can never
     // leave a deposit "confirmed" with the wallet never credited.
+    // Record what arrived on-chain and the rate it was priced at, so the
+    // credited USD figure can always be reconciled back to the block.
+    await admin
+      .from("deposits")
+      .update({ asset_amount: result.btcAmount, rate_usd: result.rateUsd })
+      .eq("id", depositId);
+
     const { error: confirmError } = await admin.rpc("confirm_deposit", {
       p_deposit_id: depositId,
-      p_amount: result.amount
+      p_amount: result.usdAmount
     });
     if (confirmError) {
       return { status: "pending_verification", message: "Verified on-chain but couldn't credit the wallet yet — try reverifying." };
     }
 
-    return { status: "confirmed", message: `Confirmed — ${result.amount} USDT credited to wallet.` };
+    return {
+      status: "confirmed",
+      message: `Confirmed — ${result.btcAmount} BTC @ $${result.rateUsd} credited as $${result.usdAmount}.`
+    };
   }
 
   const reason = result.reason ?? "verification_error";

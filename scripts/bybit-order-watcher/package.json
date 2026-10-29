@@ -1,0 +1,14 @@
+{
+  "name": "bybit-order-watcher",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Standalone listener that connects to your Bybit account over the private WebSocket feed and logs full details of every order as it's received/filled.",
+  "scripts": {
+    "start": "node watcher.mjs"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "ws": "^8.18.0"
+  }
+}

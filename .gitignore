@@ -35,3 +35,6 @@ android/twa/.gradle/
 android/twa/build/
 android/twa/local.properties
 *.tsbuildinfo
+
+# Bybit order watcher — local logs may contain account order details
+scripts/bybit-order-watcher/logs/

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isValidTronAddress } from "@/lib/tron-address";
+import { isValidBitcoinAddress } from "@/lib/btc-address";
 import { verifyTransactionKey } from "@/lib/transactionKey";
 import { sendAdminAlert } from "@/lib/adminEmail";
 
@@ -35,8 +35,8 @@ export async function POST(req: NextRequest) {
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) return NextResponse.json({ error: "Invalid request" }, { status: 400 });
 
-  if (!isValidTronAddress(parsed.data.destination_address)) {
-    return NextResponse.json({ error: "Enter a valid TRC20 (TRON) wallet address." }, { status: 400 });
+  if (!isValidBitcoinAddress(parsed.data.destination_address)) {
+    return NextResponse.json({ error: "Enter a valid Bitcoin address (1…, 3… or bc1…)." }, { status: 400 });
   }
 
   const admin = createAdminClient();
