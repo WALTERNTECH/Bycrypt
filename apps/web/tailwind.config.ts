@@ -51,8 +51,8 @@ const config: Config = {
         "info-dim": "#EAF2FD",
         // Text. Near-black rather than pure black: #000 on white vibrates.
         "text-primary": "#121214",
-        "text-secondary": "#5B5E66",
-        "text-tertiary": "#8A8D94",
+        "text-secondary": "#4A4E57",
+        "text-tertiary": "#6B7079",
         // Text on a bright fill. Named ink because `base` would collide
         // with Tailwind's text-base font-size utility.
         ink: "#121214",
@@ -63,7 +63,7 @@ const config: Config = {
         "header-3": "#EFEFF2",
         "header-border": "#EAECEF",
         "header-text": "#121214",
-        "header-muted": "#8A8D94",
+        "header-muted": "#6B7079",
         "header-dark": "#121214"
       },
       fontFamily: {

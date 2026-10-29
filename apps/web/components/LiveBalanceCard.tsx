@@ -52,13 +52,30 @@ export function LiveBalanceCard({
   const hasPosition = principal > 0;
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-gradient-to-b from-surface-2 to-surface shadow-card">
-      {/* Total equity */}
+    <div className="overflow-hidden rounded-xl border border-border bg-surface">
+      {/* Total equity, then floating P&L directly beneath it — the two
+          numbers people open the app to see, at the size that says so. */}
       <div className="px-4 pt-4">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">Total equity</p>
-        <p className="mono-num mt-1 text-[32px] font-extrabold leading-none text-text-primary">
+        <p className="text-[11px] font-medium text-text-secondary">Total equity</p>
+        <p className="mono-num mt-1 text-[30px] font-bold leading-none tracking-tight text-text-primary">
           {formatUsdt(walletBalance + settleValue, { withSymbol: true })}
         </p>
+        {hasPosition && (
+          <div className="mt-2 flex items-baseline gap-2">
+            <span className="text-[11px] font-medium text-text-secondary">Floating P&L</span>
+            <span className={`mono-num text-[15px] font-bold ${up ? "text-positive" : "text-negative"}`}>
+              {up ? "+" : ""}
+              {formatUsdt(liveDelta, { withSymbol: true })}
+            </span>
+            <span
+              className={`mono-num rounded px-1.5 py-0.5 text-[11px] font-semibold ${
+                up ? "bg-positive-dim text-positive" : "bg-negative-dim text-negative"
+              }`}
+            >
+              {formatPct(livePct, { signed: true })}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Wallet vs Trading */}
@@ -66,7 +83,7 @@ export function LiveBalanceCard({
         <div className="px-4 py-3">
           <div className="flex items-center gap-1.5">
             <span className="h-1.5 w-1.5 rounded-full bg-text-tertiary" />
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">Wallet</p>
+            <p className="text-[11px] font-medium text-text-secondary">Wallet</p>
           </div>
           <p className="mono-num mt-1 text-xl font-extrabold text-text-primary">
             {formatUsdt(walletBalance, { withSymbol: true })}
@@ -81,19 +98,12 @@ export function LiveBalanceCard({
                 hasPosition && connected ? "live-dot bg-brand" : "bg-text-tertiary"
               }`}
             />
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-text-tertiary">Trading</p>
+            <p className="text-[11px] font-medium text-text-secondary">Trading</p>
           </div>
           <p className={`mono-num mt-1 text-lg font-bold ${hasPosition ? "text-text-primary" : "text-text-tertiary"}`}>
             {formatUsdt(hasPosition ? tradingLive : 0, { withSymbol: true })}
           </p>
-          {hasPosition ? (
-            <p className={`mono-num mt-0.5 text-[10px] font-bold ${up ? "text-positive" : "text-negative"}`}>
-              {up ? "+" : ""}
-              {formatUsdt(liveDelta, { withSymbol: true })} ({formatPct(livePct, { signed: true })})
-            </p>
-          ) : (
-            <p className="mt-0.5 text-[10px] text-text-tertiary">No open position</p>
-          )}
+          {!hasPosition && <p className="mt-0.5 text-[10px] text-text-tertiary">No open position</p>}
         </div>
       </div>
 

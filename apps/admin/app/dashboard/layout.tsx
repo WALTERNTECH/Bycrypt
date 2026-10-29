@@ -3,18 +3,9 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/Logo";
 import { SignOutButton } from "@/components/SignOutButton";
+import { AdminSidebar } from "@/components/AdminSidebar";
 
-const navItems = [
-  { href: "/dashboard", label: "Overview" },
-  { href: "/dashboard/notifications", label: "Notifications" },
-  { href: "/dashboard/users", label: "Users" },
-  { href: "/dashboard/deposits", label: "Deposits" },
-  { href: "/dashboard/investments", label: "Investments" },
-  { href: "/dashboard/withdrawals", label: "Withdrawals" },
-  { href: "/dashboard/bot-performance", label: "Bot Performance" },
-  { href: "/dashboard/audit-logs", label: "Audit Logs" },
-  { href: "/dashboard/config", label: "Config" }
-];
+
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const supabase = createClient();
@@ -38,39 +29,28 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <div className="min-h-screen bg-base lg:flex">
-      <aside className="border-b border-border/60 bg-panel lg:w-64 lg:shrink-0 lg:border-b-0 lg:border-r">
-        <div className="flex h-16 items-center px-5">
+      {/* Sidebar is a real column on desktop and a drawer on anything
+          narrower — never a row of buttons above the content. */}
+      <aside className="bg-base lg:w-60 lg:shrink-0 lg:border-r lg:border-border">
+        <div className="hidden h-16 items-center px-5 lg:flex">
           <Link href="/dashboard">
             <Logo />
           </Link>
         </div>
-        <nav className="flex gap-1 overflow-x-auto px-3 pb-3 lg:flex-col lg:overflow-visible lg:pb-5">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex items-center justify-between whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium text-text-secondary transition-colors hover:bg-panel-2 hover:text-text-primary"
-            >
-              {item.label}
-              {item.href === "/dashboard/notifications" && !!unreadCount && (
-                <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-ink">
-                  {unreadCount}
-                </span>
-              )}
-            </Link>
-          ))}
-        </nav>
+        <AdminSidebar unreadCount={unreadCount ?? 0} />
       </aside>
 
-      <div className="flex-1">
-        <header className="flex h-16 items-center justify-between border-b border-border/60 px-5">
-          <div>
-            <p className="text-sm font-semibold text-text-primary">{adminRow.full_name}</p>
-            <p className="text-xs capitalize text-text-secondary">{adminRow.role.replace("_", " ")}</p>
+      <div className="min-w-0 flex-1">
+        <header className="flex h-16 items-center justify-between border-b border-border px-5">
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-semibold text-text-primary">{adminRow.full_name}</p>
+            <p className="text-[11px] capitalize text-text-secondary">
+              {(adminRow.role ?? "admin").replace("_", " ")}
+            </p>
           </div>
           <SignOutButton />
         </header>
-        <main className="p-5 sm:p-8">{children}</main>
+        <main className="p-5 sm:p-7">{children}</main>
       </div>
     </div>
   );

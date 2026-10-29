@@ -5,7 +5,8 @@ import { PositionChart } from "@/components/PositionChart";
 import { LiveBalanceCard } from "@/components/LiveBalanceCard";
 import { OpenPositionCard } from "@/components/OpenPositionCard";
 import { SectionHeading } from "@/components/ui";
-import { TradeIcon, DepositIcon, WithdrawIcon } from "@/components/icons";
+import { DepositIcon, WithdrawIcon } from "@/components/icons";
+import { TickerStrip } from "@/components/TickerStrip";
 
 export default async function HomePage() {
   const supabase = createClient();
@@ -42,24 +43,14 @@ export default async function HomePage() {
         investments={openPositions.map((p) => ({ amount: p.amount, accrued: p.accrued, traded_symbol: p.traded_symbol }))}
       />
 
-      <div className="mt-3 grid grid-cols-3 gap-2.5">
-        <ActionTile href="/trade" tone="brand" label="Trade" icon={<TradeIcon className="h-[18px] w-[18px]" />} />
-        <ActionTile href="/deposit" tone="positive" label="Deposit" icon={<DepositIcon className="h-[18px] w-[18px]" />} />
+      <div className="mt-3 grid grid-cols-2 gap-2.5">
+        <ActionTile href="/deposit" tone="brand" label="Deposit" icon={<DepositIcon className="h-[18px] w-[18px]" />} />
         <ActionTile href="/withdraw" tone="neutral" label="Withdraw" icon={<WithdrawIcon className="h-[18px] w-[18px]" />} />
       </div>
 
-      {position && (
-        <OpenPositionCard
-          id={position.id}
-          symbol={position.traded_symbol}
-          principal={position.amount}
-          accrued={position.accrued}
-        />
-      )}
-
-      {/* Replaces the old coin-recommendation card. This reports on money
-          actually at stake rather than suggesting a trade, so it only
-          appears when there is a position to report on. */}
+      {/* The chart answers "how is my money doing" and so comes first;
+          the position card below it carries the detail and the close
+          control. Both only exist when there is a position. */}
       {position?.traded_symbol && (
         <PositionChart
           symbol={position.traded_symbol}
@@ -72,6 +63,20 @@ export default async function HomePage() {
           startedAt={position.start_date}
         />
       )}
+
+      {position && (
+        <OpenPositionCard
+          id={position.id}
+          symbol={position.traded_symbol}
+          principal={position.amount}
+          accrued={position.accrued}
+        />
+      )}
+
+      {/* Market ticker, in the page rather than pinned above it. */}
+      <div className="mt-6 overflow-hidden rounded-xl border border-border bg-surface">
+        <TickerStrip rows={symbols ?? []} />
+      </div>
 
       <div className="mt-7">
         <SectionHeading

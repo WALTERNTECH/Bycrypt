@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { TopBar } from "@/components/TopBar";
-import { TickerStrip } from "@/components/TickerStrip";
 import { BottomNav } from "@/components/BottomNav";
 import { RiskNotice } from "@/components/RiskNotice";
 
@@ -24,9 +23,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       {/* App chrome is a white bar; the trading body below stays dark.
           pt-[env(safe-area-inset-top)] keeps it clear of the notch when
           launched from the home screen. */}
-      <header className="sticky top-0 z-40 bg-header pt-[env(safe-area-inset-top)] shadow-[0_1px_0_rgba(0,0,0,0.06),0_4px_16px_-8px_rgba(0,0,0,0.15)]">
+      {/* The ticker used to live here, pinned under the header, where a
+          constantly sliding strip sat above everything the user was
+          actually trying to read. It now sits further down the page, in
+          the flow, as a market section rather than as chrome. */}
+      <header className="sticky top-0 z-40 border-b border-border bg-header pt-[env(safe-area-inset-top)]">
         <TopBar />
-        <TickerStrip rows={symbols ?? []} />
       </header>
 
       <main className="mx-auto max-w-lg pb-24">

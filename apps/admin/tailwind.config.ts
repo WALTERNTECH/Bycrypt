@@ -27,8 +27,8 @@ const config: Config = {
         info: "#2F80ED",
         "info-dim": "#EAF2FD",
         "text-primary": "#121214",
-        "text-secondary": "#5B5E66",
-        "text-tertiary": "#8A8D94",
+        "text-secondary": "#4A4E57",
+        "text-tertiary": "#6B7079",
         // text on a bright fill — deliberately NOT named "base", which
         // collides with Tailwind's text-base font-size utility
         ink: "#121214"
