@@ -1,3 +1,5 @@
+import { fetchPrice } from "./market";
+
 // Server-only. On-chain BTC deposit verification against a public Esplora
 // explorer, mirroring the contract trongrid.ts provided for USDT-TRC20.
 //
@@ -50,9 +52,12 @@ async function esplora(path: string): Promise<Response | null> {
   for (const host of ESPLORA_HOSTS) {
     try {
       const res = await fetch(`${host}${path}`, { cache: "no-store" });
-      // 404 is a real answer ("no such transaction"), not host trouble, so
-      // it is returned rather than triggering the fallback.
-      if (res.ok || res.status === 404) return res;
+      // 404 ("no such transaction") and 400 ("that is not a Bitcoin
+      // address") are real answers, not host trouble, so they are returned
+      // rather than triggering the fallback — a second host would give the
+      // same answer, and reporting it as an unreachable network sent
+      // operators looking for an outage that was not there.
+      if (res.ok || res.status === 404 || res.status === 400) return res;
     } catch {
       // Try the next host.
     }
@@ -61,22 +66,15 @@ async function esplora(path: string): Promise<Response | null> {
 }
 
 /**
- * BTC/USD for pricing the deposit. Binance's public ticker is already the
- * price source this platform displays, so using it here keeps the figure
- * a user sees and the figure they are credited on the same feed.
+ * BTC/USD for pricing the deposit.
+ *
+ * This used to call Binance directly, which answers 451 from the region
+ * these functions run in — so the rate came back null, and starting a
+ * deposit failed before the user was ever shown an address. It now goes
+ * through the same multi-venue lookup every other price in the app uses.
  */
 export async function fetchBtcUsdRate(): Promise<number | null> {
-  try {
-    const res = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", {
-      cache: "no-store"
-    });
-    if (!res.ok) return null;
-    const json = await res.json();
-    const price = Number(json?.price);
-    return Number.isFinite(price) && price > 0 ? price : null;
-  } catch {
-    return null;
-  }
+  return fetchPrice("BTCUSDT");
 }
 
 export async function verifyBitcoinDeposit(
@@ -148,18 +146,24 @@ export async function verifyBitcoinDeposit(
    money.
 
    The tag closes that. Each pending deposit is given its own exact
-   amount — the dollar figure converted to BTC, with the last three
-   satoshi digits replaced by a number unique among pending deposits.
-   Three digits is under a cent of difference at any realistic BTC price,
-   and it makes every pending deposit's expected amount unique, so an
-   address scan can tell them apart. The user is shown the exact figure to
-   send, and the USD credited is computed from what actually arrived.
+   amount: the dollar figure converted to BTC, rounded to the nearest
+   hundred satoshis, plus a tag of 1-99 satoshis that no other pending
+   deposit holds. Every expected amount is therefore bucket x 100 + tag,
+   which stays unique whether or not two deposits are for the same dollar
+   figure. The depositor sends at most about a hundred satoshis away from
+   what they asked for, roughly ten cents at a six-figure BTC price, and
+   is credited the USD value of whatever actually arrives — so the
+   difference lands in the amount sent, never in the amount received.
+
+   Ninety-nine slots caps concurrent pending deposits. Past that the
+   deposit route says so and asks for a retry, rather than issuing an
+   amount that could be mistaken for someone else's.
    ============================================================ */
 
 /** Range of the per-deposit tag, in satoshis. */
 export const AMOUNT_TAG_MIN = 1;
-export const AMOUNT_TAG_MAX = 999;
-const TAG_MODULUS = 1000;
+export const AMOUNT_TAG_MAX = 99;
+const TAG_MODULUS = 100;
 
 /**
  * Builds the exact BTC amount a deposit should receive.
@@ -187,9 +191,14 @@ export function buildExpectedAmount(
   if (tag < 0) return null; // every tag in use — vanishingly unlikely
 
   const baseSats = Math.round((usdAmount / rateUsd) * SATS_PER_BTC);
-  // Below the modulus, replacing the last digits would distort the amount
-  // instead of tagging it, so the tag is added on top.
-  const sats = baseSats < TAG_MODULUS * 2 ? baseSats + tag : baseSats - (baseSats % TAG_MODULUS) + tag;
+  // Nearest bucket rather than the one below, so the drift is split
+  // either side of the figure asked for instead of always shaving it
+  // down. Below two buckets there is nothing to round into, so the tag
+  // goes on top — it would distort a tiny amount rather than label it.
+  const sats =
+    baseSats < TAG_MODULUS * 2
+      ? baseSats + tag
+      : Math.round(baseSats / TAG_MODULUS) * TAG_MODULUS + tag;
 
   return { expectedBtc: sats / SATS_PER_BTC, tag };
 }
@@ -229,6 +238,7 @@ export async function findPaymentToAddress(
 
     const res = await esplora(`/address/${address}/txs`);
     if (!res) return { ok: false, reason: "explorer_unreachable" };
+    if (res.status === 400) return { ok: false, reason: "invalid_address" };
     if (res.status === 404) return { ok: false, reason: "payment_not_found" };
 
     const txs = (await res.json()) as EsploraAddressTx[];

@@ -12,6 +12,8 @@ const REASON_MESSAGES: Record<string, string> = {
   verification_error: "Something went wrong verifying this deposit. We'll keep trying — check back shortly.",
   insufficient_confirmations: "Your payment has arrived and is waiting for network confirmations.",
   amount_not_set: "This deposit has no expected amount recorded. Start a new one.",
+  invalid_address:
+    "The receiving address on file is not a valid Bitcoin address. An operator needs to correct it before deposits can be verified.",
   already_claimed: "That payment has already been credited to a deposit. Start a new one if you sent again.",
   address_not_configured:
     "The platform's receiving wallet isn't configured yet. This deposit can't be verified until it is."
@@ -29,7 +31,8 @@ const RETRYABLE_REASONS = new Set([
   "insufficient_confirmations",
   "amount_not_set",
   "already_claimed",
-  "address_not_configured"
+  "address_not_configured",
+  "invalid_address"
 ]);
 
 export interface DepositVerificationOutcome {
