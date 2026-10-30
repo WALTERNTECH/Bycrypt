@@ -62,8 +62,14 @@ function main() {
   const listing = execFileSync("git", ["ls-files"], { cwd: ROOT, encoding: "utf8" })
     .trim()
     .split("\n");
-  const forbidden = listing.filter((f) =>
-    /(^|\/)\.env(\.|$)|(^|\/)node_modules\//.test(f) || f.includes("/.next/") || f.includes("/.vercel/")
+  // .env.example is a template of REPLACE_WITH placeholders and belongs in
+  // the bundle; every other .env file does not.
+  const forbidden = listing.filter(
+    (f) =>
+      (/(^|\/)\.env(\.|$)/.test(f) && !f.endsWith(".env.example")) ||
+      /(^|\/)node_modules\//.test(f) ||
+      f.includes("/.next/") ||
+      f.includes("/.vercel/")
   );
 
   const size = statSync(target).size;
