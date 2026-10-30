@@ -28,7 +28,32 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  await supabase.auth.getUser();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  // The signed-in area guards itself in its layout, but a layout and the
+  // page beneath it render in parallel — so a logged-out visitor hit the
+  // page's own data fetch, which dereferences the user, and got a 500
+  // before the redirect could run. Turning them away here means the
+  // request never reaches either.
+  const path = request.nextUrl.pathname;
+  const isPublic =
+    path.startsWith("/login") ||
+    path.startsWith("/signup") ||
+    path.startsWith("/forgot-password") ||
+    path.startsWith("/reset-password") ||
+    path.startsWith("/api/") ||
+    path.startsWith("/manifest") ||
+    path.startsWith("/sw.js") ||
+    path.startsWith("/icons");
+
+  if (!user && !isPublic) {
+    const to = request.nextUrl.clone();
+    to.pathname = "/login";
+    to.search = "";
+    return NextResponse.redirect(to);
+  }
 
   return response;
 }

@@ -36,8 +36,6 @@ export default async function HomePage() {
         .from("platform_config")
         .select("key, value")
         .in("key", ["telegram_support_url", "referral_bonus_usd", "home_promos"]),
-      // The feed is the bottom of this screen, so its first page is
-      // rendered with it rather than fetched after paint.
       fetchNews().catch(() => [])
     ]);
 
@@ -55,37 +53,53 @@ export default async function HomePage() {
     : "";
 
   return (
-    <div className="px-4 pt-4 sm:px-6">
-      <LiveBalanceCard walletBalance={walletBalance} positions={positions} />
+    // One column on a phone, two once there is room. The market rail moves
+    // out to the side on a wide screen instead of pushing the feed a
+    // screen and a half further down.
+    <div className="px-4 pt-4 sm:px-6 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-start lg:gap-8 lg:px-0">
+      <div className="min-w-0">
+        <LiveBalanceCard walletBalance={walletBalance} positions={positions} />
 
-      <QuickActions telegramUrl={telegramUrl} />
+        <QuickActions telegramUrl={telegramUrl} />
 
-      <PromoCarousel slides={promos} />
+        <PromoCarousel slides={promos} />
 
-      {/* The chart answers "how is my money doing" and so comes first; the
-          card below it carries the exit. Both only exist when there is a
-          position. */}
-      {position?.symbol && <PositionChart row={position} displayName={displayName} />}
-      {position && <OpenPositionCard row={position} />}
+        {/* The chart answers "how is my money doing" and so comes first;
+            the card below it carries the exit. Both only exist when there
+            is a position. */}
+        {position?.symbol && <PositionChart row={position} displayName={displayName} />}
+        {position && <OpenPositionCard row={position} />}
 
-      <MarketHighlights rows={symbols ?? []} />
+        {/* The market rail, on a phone only — on desktop it sits in the
+            column to the right instead. */}
+        <div className="lg:hidden">
+          <MarketHighlights rows={symbols ?? []} />
 
-      <div className="mt-5 overflow-hidden rounded-lg">
-        <TickerStrip rows={symbols ?? []} />
+          <div className="mt-5 overflow-hidden rounded-lg">
+            <TickerStrip rows={symbols ?? []} />
+          </div>
+
+          <MarketBoard rows={symbols ?? []} />
+        </div>
+
+        {/* The feed runs to the bottom of the screen and keeps going. It
+            replaced a position-history button and a risk notice, neither of
+            which gave anyone a reason to stay here — position history now
+            lives on the Positions tab, where someone goes looking for it,
+            and the risk notice sits on the screens where risk is actually
+            taken rather than on the one people open to check a balance. */}
+        <NewsFeed initialItems={news.slice(0, 12)} initialNextPage={news.length > 12 ? 2 : null} />
       </div>
 
-      <MarketBoard rows={symbols ?? []} />
+      <aside className="hidden lg:block">
+        <MarketHighlights rows={symbols ?? []} />
 
-      {/* The feed runs to the bottom of the screen and keeps going. It
-          replaced a position-history button and a risk notice, neither of
-          which gave anyone a reason to stay here — position history now
-          lives on the Positions tab, where someone goes looking for it,
-          and the risk notice sits on the screens where risk is actually
-          taken rather than on the one people open to check a balance. */}
-      <NewsFeed
-        initialItems={news.slice(0, 12)}
-        initialNextPage={news.length > 12 ? 2 : null}
-      />
+        <div className="mt-5 overflow-hidden rounded-lg">
+          <TickerStrip rows={symbols ?? []} />
+        </div>
+
+        <MarketBoard rows={symbols ?? []} />
+      </aside>
     </div>
   );
 }

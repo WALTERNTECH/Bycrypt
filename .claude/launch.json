@@ -102,6 +102,18 @@
         "C:/Users/USER/Konnect/.local/run-local.mjs"
       ],
       "port": 5173
+    },
+    {
+      "name": "krypton-web",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:/Users/USER/Bycrypt/apps/web/node_modules/next/dist/bin/next",
+        "start",
+        "C:/Users/USER/Bycrypt/apps/web",
+        "-p",
+        "3210"
+      ],
+      "port": 3210
     }
   ]
 }

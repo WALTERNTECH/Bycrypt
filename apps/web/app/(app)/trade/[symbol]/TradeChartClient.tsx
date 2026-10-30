@@ -11,7 +11,7 @@ import { Button, ButtonLink } from "@/components/ui";
 import { formatUsdt, formatPct } from "@/lib/format";
 import { CHART_INTERVALS, INTERVAL_LABEL, SCAN_WINDOW, type ChartInterval } from "@/lib/market";
 import { TARGET_GAIN_OPTIONS, type OpenPositionRow } from "@/lib/position";
-import { coinMoveForTarget } from "@/lib/leverage";
+import { coinMoveForTarget, leverageFor } from "@/lib/leverage";
 import { scanMarket, type MarketScan } from "@/lib/scan";
 
 interface Fill {
@@ -77,6 +77,8 @@ export function TradeChartClient({
     !Number.isNaN(parsedAmount) && parsedAmount >= minAmount && parsedAmount <= walletBalance;
   const positionElsewhere = openPosition && openPosition.symbol !== symbol ? openPosition : null;
   const readyToScan = amountValid && target !== null && !openPosition;
+  // Leverage follows the timeframe chip, so the move a target needs moves with it.
+  const leverage = leverageFor(timeframe);
 
   /* ---------- the scan ---------- */
 
@@ -349,7 +351,7 @@ export function TradeChartClient({
                         active ? "text-ink/70" : "text-text-tertiary"
                       }`}
                     >
-                      {amountValid ? formatUsdt((parsedAmount * pct) / 100, { withSymbol: true }) : `${coinMoveForTarget(pct)}% move`}
+                      {amountValid ? formatUsdt((parsedAmount * pct) / 100, { withSymbol: true }) : `${coinMoveForTarget(pct, leverage).toFixed(2)}% move`}
                     </span>
                   </button>
                 );

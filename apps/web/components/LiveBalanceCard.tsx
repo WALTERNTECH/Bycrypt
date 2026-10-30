@@ -6,6 +6,7 @@ import { useLiveTickers } from "@/hooks/useLiveTickers";
 import { formatUsdt, formatPct } from "@/lib/format";
 import { positionState, type OpenPositionRow } from "@/lib/position";
 import { useSimulatedAccount } from "./SimulationProvider";
+import { useLivePosition } from "./PositionLiveProvider";
 
 const HIDDEN_KEY = "krypton-assets-hidden";
 
@@ -36,6 +37,8 @@ export function LiveBalanceCard({
   );
   const { tickers } = useLiveTickers(symbols);
   const simulated = useSimulatedAccount();
+  // One position runs at a time, so this is the server figure for it.
+  const live = useLivePosition(positions[0]?.id ?? null);
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
@@ -66,7 +69,7 @@ export function LiveBalanceCard({
   const totals = positions.reduce(
     (acc, p) => {
       const t = p.symbol ? tickers[p.symbol] : undefined;
-      const s = positionState({
+      const s = live && live.id === p.id ? live.state : positionState({
         principal: p.principal,
         accrued: p.accrued,
         side: p.side,
@@ -75,6 +78,7 @@ export function LiveBalanceCard({
         fallbackPct: t?.priceChangePercent ?? null,
         targetGainPct: p.targetGainPct,
         startedAt: p.startedAt,
+        timeframe: p.timeframe,
         simulated
       });
       return { settles: acc.settles + s.settles, value: acc.value + s.value, pnl: acc.pnl + s.pnl };

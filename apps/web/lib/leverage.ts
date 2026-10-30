@@ -23,7 +23,35 @@
  * a user watches and what they are paid come from the same formula. The
  * browser never supplies the figure.
  */
-export const LEVERAGE_RATIO = 20;
+/**
+ * Leverage is set by the timeframe the position was opened on.
+ *
+ * A single ratio for every timeframe was the problem behind both
+ * complaints about this. Bitcoin moves roughly 0.8% in four hours and
+ * roughly 13% in a month, so one multiplier cannot make a +25% target
+ * sensibly reachable on both — at 20x a four-hour position needed a move
+ * the market rarely makes that fast, while the same 20x turned ordinary
+ * minute-to-minute noise into double-digit swings the moment it opened.
+ *
+ * These are sized so a mid-range target lands somewhere inside the window
+ * the user actually chose, and so the day-to-day movement along the way
+ * is proportionate to how long they intend to hold.
+ */
+export const TIMEFRAME_LEVERAGE: Record<string, number> = {
+  "4h": 15,
+  "1d": 8,
+  "1w": 4,
+  "1M": 2
+};
+
+/** Used where the timeframe is unknown — positions opened before it was
+ *  recorded, and anything that does not name one. */
+export const LEVERAGE_RATIO = 8;
+
+export function leverageFor(timeframe: string | null | undefined): number {
+  if (!timeframe) return LEVERAGE_RATIO;
+  return TIMEFRAME_LEVERAGE[timeframe] ?? LEVERAGE_RATIO;
+}
 
 export type Side = "BUY" | "SELL";
 
@@ -51,13 +79,23 @@ export function moveFromEntry(entryPrice: number | null, livePrice: number | nul
  * What the position is worth now. Floored at zero: at 1:20 a 5% adverse
  * move wipes it out, and a balance must never render negative.
  */
-export function positionValue(principal: number, rawPct: number, side: Side = "BUY"): number {
-  return Math.max(0, principal * (1 + (directionalPct(rawPct, side) * LEVERAGE_RATIO) / 100));
+export function positionValue(
+  principal: number,
+  rawPct: number,
+  side: Side = "BUY",
+  leverage: number = LEVERAGE_RATIO
+): number {
+  return Math.max(0, principal * (1 + (directionalPct(rawPct, side) * leverage) / 100));
 }
 
 /** Gain or loss against the stake. Negative when the position is down. */
-export function positionPnl(principal: number, rawPct: number, side: Side = "BUY"): number {
-  return positionValue(principal, rawPct, side) - principal;
+export function positionPnl(
+  principal: number,
+  rawPct: number,
+  side: Side = "BUY",
+  leverage: number = LEVERAGE_RATIO
+): number {
+  return positionValue(principal, rawPct, side, leverage) - principal;
 }
 
 /**
@@ -68,12 +106,17 @@ export function positionPnl(principal: number, rawPct: number, side: Side = "BUY
  * contradict it. Deriving from the value keeps the pair consistent and
  * bottoms out at -100%.
  */
-export function positionPct(principal: number, rawPct: number, side: Side = "BUY"): number {
+export function positionPct(
+  principal: number,
+  rawPct: number,
+  side: Side = "BUY",
+  leverage: number = LEVERAGE_RATIO
+): number {
   if (principal <= 0) return 0;
-  return (positionPnl(principal, rawPct, side) / principal) * 100;
+  return (positionPnl(principal, rawPct, side, leverage) / principal) * 100;
 }
 
 /** The coin move that would put a position at `targetPct` gain. */
-export function coinMoveForTarget(targetPct: number): number {
-  return targetPct / LEVERAGE_RATIO;
+export function coinMoveForTarget(targetPct: number, leverage: number = LEVERAGE_RATIO): number {
+  return targetPct / leverage;
 }

@@ -57,6 +57,7 @@ export async function valuePosition(row: OpenPositionRow, simulated = false) {
     fallbackPct,
     targetGainPct: row.targetGainPct,
     startedAt: row.startedAt,
+    timeframe: row.timeframe,
     simulated
   });
 

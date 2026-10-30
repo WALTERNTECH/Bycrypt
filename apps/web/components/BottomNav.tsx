@@ -35,7 +35,7 @@ export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 bg-surface-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-1px_0_rgba(18,18,20,0.06),0_-8px_24px_-18px_rgba(18,18,20,0.25)]">
+    <nav className="fixed inset-x-0 bottom-0 z-40 bg-surface-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-1px_0_rgba(18,18,20,0.06),0_-8px_24px_-18px_rgba(18,18,20,0.25)] lg:hidden">
       <div className="mx-auto flex max-w-lg items-stretch gap-1 px-2 py-1.5">
         {items.map((item) => {
           const active = item.match(pathname);

@@ -63,7 +63,7 @@ export function PositionChart({ row, displayName }: { row: OpenPositionRow; disp
   // the chart so "how far to go" is visible on the axis.
   const targetPrice =
     entry && row.targetGainPct
-      ? entry * (1 + ((isSell ? -1 : 1) * coinMoveForTarget(row.targetGainPct)) / 100)
+      ? entry * (1 + ((isSell ? -1 : 1) * coinMoveForTarget(row.targetGainPct, state.leverage)) / 100)
       : null;
 
   useEffect(() => {

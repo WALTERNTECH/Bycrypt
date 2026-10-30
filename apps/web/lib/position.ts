@@ -1,4 +1,5 @@
 import {
+  leverageFor,
   moveFromEntry,
   normalizeSide,
   positionPct,
@@ -39,15 +40,51 @@ import {
  * deleting the test account removes it entirely.
  */
 
-/** Coin move, in percent, favouring whichever side the position took. */
-export function simulatedMovePct(startedAt: string, side: Side): number {
+/** How long each timeframe is, in minutes. A simulated position is paced
+ *  to reach its target at the end of this, not before. */
+const WINDOW_MINUTES: Record<string, number> = {
+  "4h": 4 * 60,
+  "1d": 24 * 60,
+  "1w": 7 * 24 * 60,
+  "1M": 30 * 24 * 60
+};
+
+/**
+ * Coin move, in percent, favouring whichever side the position took.
+ *
+ * Paced to the timeframe: a position reaches its target gain at the end of
+ * the window it was opened on, not before. The first version drifted at a
+ * flat rate regardless, so a four-hour position hit its target in about
+ * five minutes — which made the timeframe chip decorative and the
+ * auto-close impossible to observe at the point it was supposed to happen.
+ *
+ * It is returned as a coin move rather than a position move so it passes
+ * through exactly the same leverage arithmetic as a real price, which is
+ * what keeps the simulated figure honest about the shape of the thing it
+ * stands in for.
+ */
+export function simulatedMovePct(
+  startedAt: string,
+  side: Side,
+  targetGainPct: number | null,
+  timeframe: string | null,
+  leverage: number
+): number {
   const openedMs = new Date(startedAt).getTime();
   if (!Number.isFinite(openedMs)) return 0;
+
   const minutes = Math.max(0, (Date.now() - openedMs) / 60_000);
-  // A quarter of a percent of coin movement per minute is five percent of
-  // position movement at this leverage: a +10% target lands in about two
-  // minutes, +100% in twenty. Capped so the figures stay plausible.
-  const magnitude = Math.min(minutes * 0.25, 12);
+  const windowMinutes = WINDOW_MINUTES[timeframe ?? ""] ?? WINDOW_MINUTES["1d"];
+  const target = targetGainPct && targetGainPct > 0 ? targetGainPct : 25;
+
+  // Linear progress to the target across the window, then held just past
+  // it so a position whose auto-close has not yet run does not keep
+  // climbing indefinitely.
+  const progress = Math.min(minutes / windowMinutes, 1.02);
+  const positionPctGain = target * progress;
+
+  // Back out the coin move that produces that gain at this leverage.
+  const magnitude = positionPctGain / Math.max(leverage, 1);
   return side === "SELL" ? -magnitude : magnitude;
 }
 
@@ -65,6 +102,8 @@ export interface PositionInput {
   startedAt?: string | null;
   /** profiles.is_simulated for the account that holds this position. */
   simulated?: boolean;
+  /** Sets the leverage, and paces a simulated position. */
+  timeframe?: string | null;
 }
 
 export interface PositionState {
@@ -80,6 +119,8 @@ export interface PositionState {
   settles: number;
   /** Where the move was measured from, so the UI can say so. */
   basis: "entry" | "24h" | "none" | "simulated";
+  /** The ratio this position's figures were computed at. */
+  leverage: number;
   /** True once a target gain has been set and reached. */
   targetReached: boolean;
 }
@@ -89,6 +130,7 @@ export function positionState(input: PositionInput): PositionState {
   const principal = input.principal;
   const accrued = Number.isFinite(input.accrued) ? input.accrued : 0;
 
+  const leverage = leverageFor(input.timeframe);
   const simulating = input.simulated === true && !!input.startedAt;
   const fromEntry = simulating ? null : moveFromEntry(input.entryPrice, input.livePrice);
 
@@ -101,16 +143,22 @@ export function positionState(input: PositionInput): PositionState {
         : "none";
 
   const rawPct = simulating
-    ? simulatedMovePct(input.startedAt as string, side)
+    ? simulatedMovePct(
+        input.startedAt as string,
+        side,
+        input.targetGainPct ?? null,
+        input.timeframe ?? null,
+        leverage
+      )
     : fromEntry !== null
       ? fromEntry
       : basis === "24h"
         ? (input.fallbackPct as number)
         : 0;
 
-  const value = positionValue(principal, rawPct, side);
-  const pnl = positionPnl(principal, rawPct, side);
-  const pnlPct = positionPct(principal, rawPct, side);
+  const value = positionValue(principal, rawPct, side, leverage);
+  const pnl = positionPnl(principal, rawPct, side, leverage);
+  const pnlPct = positionPct(principal, rawPct, side, leverage);
 
   // A granted return is a floor on what closing pays, not an addition to
   // it — otherwise a position could be paid its market gain twice.
@@ -142,6 +190,7 @@ export function positionState(input: PositionInput): PositionState {
     value,
     settles,
     basis,
+    leverage,
     targetReached
   };
 }

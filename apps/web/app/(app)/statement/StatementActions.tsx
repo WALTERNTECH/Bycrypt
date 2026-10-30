@@ -1,61 +1,67 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui";
 
-interface Row {
-  when: string;
-  kind: string;
-  detail: string;
-  value: number;
-}
-
 /**
- * Print and download.
+ * Download and print.
  *
- * Printing is the browser's own dialogue, which on every modern platform
- * includes "Save as PDF" — that gives a real PDF without shipping a PDF
- * library to every visitor for a page most will never open.
+ * The download is a PNG, not a spreadsheet. A statement of what an
+ * account did is a document rather than a working file: it should look
+ * the same to everyone, open instantly on a phone without an app that
+ * reads .xlsx, and be awkward to edit. A spreadsheet is the opposite of
+ * all three, and it arrived looking like something still being worked on.
  *
- * The download is CSV rather than a second PDF, because the two are for
- * different jobs: the printed sheet is the document, the CSV is the data
- * someone can actually reconcile in a spreadsheet.
+ * It is rendered server-side at a fixed size, so the image is identical
+ * whatever downloaded it — no dependence on the fonts, zoom level or
+ * renderer of the device that asked.
+ *
+ * Printing stays, because the browser's own dialogue includes "Save as
+ * PDF" on every modern platform, and that gives a real PDF without
+ * shipping a PDF library to every visitor.
  */
-export function StatementActions({ rows, monthName }: { rows: Row[]; monthName: string }) {
-  function download() {
-    const esc = (v: string) => `"${v.replace(/"/g, '""')}"`;
-    const csv = [
-      ["Date", "Type", "Detail", "Amount (USD)"].map(esc).join(","),
-      ...rows.map((r) =>
-        [
-          esc(new Date(r.when).toISOString().slice(0, 10)),
-          esc(r.kind),
-          esc(r.detail),
-          r.value.toFixed(2)
-        ].join(",")
-      )
-    ].join("\r\n");
+export function StatementActions() {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-    // A BOM so Excel opens it as UTF-8 rather than mangling the currency
-    // and symbol characters.
-    const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `krypton-statement-${monthName.toLowerCase().replace(/\s+/g, "-")}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  async function download() {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/report/image", { cache: "no-store" });
+      if (!res.ok) {
+        setError("Could not build the report just now. Try again in a moment.");
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `krypton-report-${new Date().toISOString().slice(0, 10)}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // Revoked on the next tick: Safari cancels the download if the URL
+      // goes away in the same one.
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    } catch {
+      setError("Could not reach the server. Try again in a moment.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
-    <div className="flex shrink-0 gap-2">
-      <Button variant="secondary" size="sm" onClick={download}>
-        Download
-      </Button>
-      <Button variant="primary" size="sm" onClick={() => window.print()}>
-        Print
-      </Button>
+    <div className="flex shrink-0 flex-col items-end gap-1">
+      <div className="flex gap-2">
+        <Button variant="secondary" size="sm" onClick={() => window.print()}>
+          Print
+        </Button>
+        <Button variant="primary" size="sm" onClick={download} disabled={busy}>
+          {busy ? "Building…" : "Download report"}
+        </Button>
+      </div>
+      {error && <p className="text-[11px] text-negative">{error}</p>}
     </div>
   );
 }

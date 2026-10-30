@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { SearchPill } from "./SearchPill";
 import { RefreshButton } from "./RefreshButton";
+import { DesktopNav } from "./DesktopNav";
+import { Logo } from "./Logo";
 
 /**
  * The app header.
@@ -34,11 +36,17 @@ export async function TopBar() {
   ]);
 
   return (
-    <div className="flex h-14 items-center gap-2.5 px-3 sm:px-5">
+    <div className="mx-auto flex h-14 w-full max-w-lg items-center gap-2.5 px-3 sm:px-5 lg:h-16 lg:max-w-[1180px] lg:gap-5 lg:px-6">
+      <div className="hidden shrink-0 lg:block">
+        <Logo />
+      </div>
+
+      <DesktopNav />
+
       <Link
         href="/account"
         aria-label="Account"
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-3 transition-colors hover:bg-[#E4E5EA]"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-surface-3 transition-colors hover:bg-[#E4E5EA] lg:order-last"
       >
         <svg
           viewBox="0 0 24 24"

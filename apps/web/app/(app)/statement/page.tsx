@@ -97,7 +97,7 @@ export default async function StatementPage() {
           <h1 className="text-[17px] font-bold text-text-primary">Statement</h1>
           <p className="mt-0.5 text-[12px] text-text-secondary">{monthName} · month to date</p>
         </div>
-        <StatementActions rows={rows} monthName={monthName} />
+        <StatementActions />
       </div>
 
       {/* The printed sheet. On screen it is a card; on paper it is the
