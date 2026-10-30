@@ -84,6 +84,34 @@ function Txt({
   );
 }
 
+/**
+ * How tall the page needs to be.
+ *
+ * The canvas is a fixed size — the renderer has no concept of a page that
+ * grows — so an account with one position and an account with twenty
+ * cannot share a number. A fixed 1700 left a third of the sheet blank
+ * below a short report, which reads as something missing rather than
+ * something finished.
+ *
+ * Measured against the taller of the two columns, since either can be the
+ * one that runs long.
+ */
+export function reportHeight(r: ReportData): number {
+  const CHROME = 150; // header band
+  const STATS = 150; // headline figures and the formula under them
+  const CHART = 348;
+  const FOOTER = 90;
+
+  const openRows = Math.max(r.openPositions.length, 1);
+  const closedRows = Math.max(Math.min(r.closedPositions.length, 6), 1);
+  const left = 46 + openRows * 56 + 30 + 46 + closedRows * 56;
+
+  const txRows = Math.max(Math.min(r.transactions.length, 7), 1);
+  const right = 46 + txRows * 58 + 26 + 222;
+
+  return CHROME + STATS + CHART + Math.max(left, right) + FOOTER;
+}
+
 export function Report({ r }: { r: ReportData }) {
   const profitUp = r.netProfit >= 0;
 
@@ -91,7 +119,7 @@ export function Report({ r }: { r: ReportData }) {
     <div
       style={{
         width: "1200px",
-        height: "1700px",
+        height: `${reportHeight(r)}px`,
         display: "flex",
         flexDirection: "column",
         backgroundColor: "#FFFFFF",

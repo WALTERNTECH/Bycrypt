@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { createClient } from "@/lib/supabase/server";
 import { buildReport } from "@/lib/report";
-import { Report } from "@/components/ReportDocument";
+import { Report, reportHeight } from "@/components/ReportDocument";
 import { loadReportFonts } from "@/lib/fonts/reportFonts";
 
 export const runtime = "nodejs";
@@ -39,7 +39,7 @@ export async function GET() {
 
     return new ImageResponse(<Report r={r} />, {
       width: 1200,
-      height: 1700,
+      height: reportHeight(r),
       fonts: loaded,
       headers: {
         "Content-Disposition": `attachment; filename="krypton-report-${new Date()

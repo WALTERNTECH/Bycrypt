@@ -1,6 +1,6 @@
 // LOCAL VISUAL CHECK ONLY — deleted before commit.
 import { ImageResponse } from "next/og";
-import { Report } from "@/components/ReportDocument";
+import { Report, reportHeight } from "@/components/ReportDocument";
 import type { ReportData } from "@/lib/report";
 import { loadReportFonts } from "@/lib/fonts/reportFonts";
 
@@ -81,7 +81,7 @@ const SAMPLE: ReportData = {
 export async function GET() {
   return new ImageResponse(<Report r={SAMPLE} />, {
     width: 1200,
-    height: 1700,
+    height: reportHeight(SAMPLE),
     fonts: loadReportFonts()
   });
 }
