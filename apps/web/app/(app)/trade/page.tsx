@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { TradeMarketList } from "./TradeMarketList";
+import { PageTail } from "@/components/PageTail";
 import { RiskNotice } from "@/components/RiskNotice";
 
 export default async function TradePage() {
@@ -20,6 +21,8 @@ export default async function TradePage() {
       <div className="mt-4">
         <TradeMarketList rows={symbols ?? []} walletBalance={parseFloat(String(profile?.wallet_balance ?? 0))} />
       </div>
+
+      <PageTail variant="trade" />
       <RiskNotice />
     </div>
   );

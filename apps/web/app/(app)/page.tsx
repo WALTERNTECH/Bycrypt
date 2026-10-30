@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { PositionChart } from "@/components/PositionChart";
 import { LiveBalanceCard } from "@/components/LiveBalanceCard";
@@ -64,11 +65,24 @@ export default async function HomePage() {
 
         <PromoCarousel slides={promos} />
 
-        {/* The chart answers "how is my money doing" and so comes first;
-            the card below it carries the exit. Both only exist when there
-            is a position. */}
+        {/* The chart answers "how is my money doing" and so comes first.
+            Only the newest position gets one: several can run at once now,
+            and a chart apiece would mean a chart instance and a candle
+            request each, on a screen people open constantly. Every
+            position gets a card, and the full set is a tap away. */}
         {position?.symbol && <PositionChart row={position} displayName={displayName} />}
-        {position && <OpenPositionCard row={position} />}
+        {positions.map((p) => (
+          <OpenPositionCard key={p.id} row={p} />
+        ))}
+        {positions.length > 1 && (
+          <Link
+            href="/investments"
+            className="mt-3 flex items-center justify-center gap-1.5 rounded-lg bg-surface-2 py-2.5 text-[12px] font-bold text-text-secondary transition-colors hover:bg-surface-3 hover:text-text-primary"
+          >
+            Manage all {positions.length} positions
+            <span aria-hidden>→</span>
+          </Link>
+        )}
 
         {/* The market rail, on a phone only — on desktop it sits in the
             column to the right instead. */}

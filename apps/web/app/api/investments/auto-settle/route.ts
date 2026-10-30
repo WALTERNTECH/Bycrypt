@@ -1,20 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { mapPositionRow, POSITION_COLUMNS } from "@/lib/position";
-import { settlePosition, valuePosition } from "@/lib/settle";
+import { settleMany } from "@/lib/settle";
 
 /**
- * Closes the caller's open position if it has reached the gain it was set
- * to close at.
+ * Closes any of the caller's positions that have reached the gain they
+ * were set to close at.
  *
- * The browser asks; the server decides. The client watches the live price
- * and calls this when it believes the target has been hit, but the target
- * is re-checked here against a price this route fetches itself — so a
- * forged call cannot close a position early, and a client that is merely
+ * The browser asks; the server decides. The client watches live figures
+ * and calls this when it believes a target has been hit, but every
+ * position is re-valued here against a price this route fetches itself —
+ * so a forged call cannot close one early, and a client that is merely
  * out of date cannot close one that has slipped back below target.
  *
- * It is safe to call repeatedly: with nothing open, or nothing at target,
- * it reports closed: false and changes nothing.
+ * It sweeps all open positions rather than the single one it used to,
+ * since several can now run at once and more than one can cross its
+ * target between two polls.
+ *
+ * Safe to call repeatedly: with nothing open, or nothing at target, it
+ * reports closed: 0 and changes nothing.
  */
 export async function POST(_req: NextRequest) {
   const supabase = createClient();
@@ -29,38 +33,20 @@ export async function POST(_req: NextRequest) {
       .select(POSITION_COLUMNS)
       .eq("user_id", user.id)
       .neq("status", "withdrawn")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .not("target_gain_pct", "is", null)
+      .order("created_at", { ascending: false }),
     supabase.from("profiles").select("is_simulated").eq("id", user.id).maybeSingle()
   ]);
 
-  const simulated = profile?.is_simulated === true;
+  const rows = (open ?? []).map(mapPositionRow).filter((r) => (r.targetGainPct ?? 0) > 0);
+  if (rows.length === 0) return NextResponse.json({ closed: 0, reason: "nothing_to_settle" });
 
-  if (!open) return NextResponse.json({ closed: false, reason: "no_open_position" });
-
-  const row = mapPositionRow(open);
-  if (row.targetGainPct === null || row.targetGainPct <= 0) {
-    return NextResponse.json({ closed: false, reason: "no_target_set" });
-  }
-
-  const { state } = await valuePosition(row, simulated);
-  if (!state.targetReached) {
-    return NextResponse.json({
-      closed: false,
-      reason: "target_not_reached",
-      pnl_pct: Number(state.pnlPct.toFixed(2)),
-      target_pct: row.targetGainPct
-    });
-  }
-
-  const outcome = await settlePosition(supabase, row, simulated);
-  if (!outcome.ok) return NextResponse.json({ closed: false, error: outcome.error }, { status: 400 });
+  const outcome = await settleMany(supabase, rows, profile?.is_simulated === true, "target");
 
   return NextResponse.json({
-    closed: true,
+    closed: outcome.closed,
     credited: outcome.credited,
     pnl: outcome.pnl,
-    target_pct: row.targetGainPct
+    ids: outcome.ids
   });
 }

@@ -98,3 +98,75 @@ export async function settlePosition(
   const total = typeof credited === "number" ? credited : parseFloat(String(credited ?? 0));
   return { ok: true, credited: total, pnl: total - row.principal, exitPrice: livePrice };
 }
+
+/* ------------------------------------------------------------------ */
+/* Closing several at once                                             */
+/* ------------------------------------------------------------------ */
+
+export type CloseScope = "all" | "winning" | "losing" | "target";
+
+export interface BulkOutcome {
+  closed: number;
+  skipped: number;
+  credited: number;
+  pnl: number;
+  ids: string[];
+  errors: string[];
+}
+
+/**
+ * Closes every open position matching a scope.
+ *
+ * Each one is valued immediately before it settles rather than from a
+ * figure taken when the list was drawn. On a screen with several
+ * positions open, seconds pass between the user pressing the button and
+ * the last one settling — and a position that was winning when the list
+ * rendered may not be by the time its turn comes. Deciding from a stale
+ * reading would close a losing position under "close winning".
+ *
+ * Sequential on purpose. Every settlement adds to the same wallet row, so
+ * running them in parallel would have them queue on that lock anyway,
+ * and it would multiply the price lookups against the venues at the same
+ * instant. One at a time is slower to finish and easier to reason about,
+ * and a failure part-way leaves every position before it correctly
+ * settled rather than an unknown subset.
+ */
+export async function settleMany(
+  supabase: any,
+  rows: OpenPositionRow[],
+  simulated: boolean,
+  scope: CloseScope
+): Promise<BulkOutcome> {
+  const out: BulkOutcome = { closed: 0, skipped: 0, credited: 0, pnl: 0, ids: [], errors: [] };
+
+  for (const row of rows) {
+    const { state } = await valuePosition(row, simulated);
+
+    const matches =
+      scope === "all"
+        ? true
+        : scope === "winning"
+          ? state.pnl > 0
+          : scope === "losing"
+            ? state.pnl < 0
+            : state.targetReached;
+
+    if (!matches) {
+      out.skipped += 1;
+      continue;
+    }
+
+    const result = await settlePosition(supabase, row, simulated);
+    if (!result.ok) {
+      out.errors.push(result.error ?? "Could not close one position.");
+      continue;
+    }
+
+    out.closed += 1;
+    out.credited += result.credited ?? 0;
+    out.pnl += result.pnl ?? 0;
+    out.ids.push(row.id);
+  }
+
+  return out;
+}

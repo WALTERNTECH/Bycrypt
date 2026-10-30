@@ -5,6 +5,7 @@ import { PositionChart } from "@/components/PositionChart";
 import { OpenPositionCard } from "@/components/OpenPositionCard";
 import { formatUsdt } from "@/lib/format";
 import { mapPositionRow, POSITION_COLUMNS } from "@/lib/position";
+import { PageTail } from "@/components/PageTail";
 
 export const dynamic = "force-dynamic";
 
@@ -53,7 +54,9 @@ export default async function AssetsPage() {
       {position?.symbol ? (
         <>
           <PositionChart row={position} displayName={displayName} />
-          <OpenPositionCard row={position} />
+          {positions.map((p) => (
+            <OpenPositionCard key={p.id} row={p} />
+          ))}
         </>
       ) : (
         <div className="mt-5 rounded-lg bg-surface-2 px-4 py-8 text-center">
@@ -85,6 +88,8 @@ export default async function AssetsPage() {
         />
         <Row label="Statement" value="This month" href="/statement" action="View" />
       </div>
+
+      <PageTail variant="assets" />
     </div>
   );
 }

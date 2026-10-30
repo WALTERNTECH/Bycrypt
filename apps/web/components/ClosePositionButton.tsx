@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "./ui";
 import { formatUsdt } from "@/lib/format";
 import { usePositionState } from "@/hooks/usePositionState";
+import { useLivePositions } from "./PositionLiveProvider";
 import type { OpenPositionRow } from "@/lib/position";
 
 /**
@@ -30,6 +31,7 @@ export function ClosePositionButton({
 }) {
   const router = useRouter();
   const { state } = usePositionState(row);
+  const { refresh } = useLivePositions();
 
   const [confirming, setConfirming] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -46,6 +48,7 @@ export function ClosePositionButton({
       setConfirming(false);
       return;
     }
+    refresh();
     router.refresh();
   }
 

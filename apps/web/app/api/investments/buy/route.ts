@@ -28,8 +28,9 @@ const bodySchema = z.object({
  * actually gave, not on whatever the request claimed. The response
  * reports the side used, and the client states it on the fill ticket.
  *
- * All the money validation (sufficient balance, one position at a time,
- * active tier) happens inside buy_investment() in Postgres.
+ * Positions run side by side. The only limit on opening one is the
+ * wallet balance, which buy_investment() checks under a row lock so two
+ * orders placed at the same instant cannot both spend it.
  */
 export async function POST(req: NextRequest) {
   const supabase = createClient();
@@ -94,7 +95,6 @@ export async function POST(req: NextRequest) {
       invalid_tier: "That plan isn't available.",
       invalid_amount: "Enter a valid amount.",
       not_authenticated: "Please log in again.",
-      position_already_open: "You already have an open position — close it first, then open a new one."
     };
     const reason = Object.keys(messages).find((k) => error.message.includes(k));
     return NextResponse.json({ error: reason ? messages[reason] : "Could not complete that trade." }, { status: 400 });

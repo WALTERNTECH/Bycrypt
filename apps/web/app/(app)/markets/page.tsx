@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { MarketTable } from "@/components/MarketTable";
+import { PageTail } from "@/components/PageTail";
 
 export const revalidate = 30;
 
@@ -24,6 +25,8 @@ export default async function MarketsPage({
             which made the search bar look broken. */}
         <MarketTable rows={symbols ?? []} query={searchParams.q ?? ""} />
       </div>
+
+      <PageTail variant="markets" />
     </div>
   );
 }

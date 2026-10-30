@@ -75,8 +75,10 @@ export function TradeChartClient({
   const parsedAmount = parseFloat(amount);
   const amountValid =
     !Number.isNaN(parsedAmount) && parsedAmount >= minAmount && parsedAmount <= walletBalance;
+  // Positions run side by side now. An open one is shown for context
+  // and can be closed from here, but it no longer blocks another.
   const positionElsewhere = openPosition && openPosition.symbol !== symbol ? openPosition : null;
-  const readyToScan = amountValid && target !== null && !openPosition;
+  const readyToScan = amountValid && target !== null;
   // Leverage follows the timeframe chip, so the move a target needs moves with it.
   const leverage = leverageFor(timeframe);
 
@@ -288,8 +290,7 @@ export function TradeChartClient({
         <SamePositionOpen position={openPosition} loading={loading} onClose={() => closePosition(openPosition)} />
       )}
 
-      {!openPosition && (
-        <div className="mt-5 space-y-5">
+      <div className="mt-5 space-y-5">
           {/* Step 2 — the amount invested */}
           <div>
             <StepLabel n={2}>How much are you investing?</StepLabel>
@@ -405,8 +406,7 @@ export function TradeChartClient({
             The signal is re-read when you confirm, so the position opens on the direction the market is
             showing at that moment.
           </p>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -480,11 +480,11 @@ function PositionElsewhere({
     <div className="mt-4 rounded-lg bg-brand-dim p-3.5">
       <p className="text-[13px] font-bold text-text-primary">{held} position is open</p>
       <p className="mt-1 text-[11px] leading-relaxed text-text-secondary">
-        Krypton runs one position at a time. Closing it releases{" "}
+        You can leave it running and open another, or close it to release{" "}
         <span className="mono-num font-bold text-text-primary">
           {formatUsdt(state.settles, { withSymbol: true })}
         </span>{" "}
-        back to your wallet, and then you can trade {coin}.
+        back to your wallet.
       </p>
       <Button variant="primary" size="md" fullWidth className="mt-3" onClick={onClose} disabled={loading}>
         {loading ? "Closing…" : `Close ${held} position`}
