@@ -139,6 +139,34 @@ The depositor sends up to about a hundred satoshis away from what they asked
 for and is credited the USD value of whatever actually arrives, so the
 difference lands in the amount sent, never in the amount received.
 
+## cPanel (Spaceship)
+
+```bash
+node scripts/build-cpanel.mjs
+```
+
+Writes `build/cpanel/krypton-web-cpanel.zip` and `krypton-admin-cpanel.zip`.
+Each is a self-contained Node application built from Next's standalone
+output: the server plus only the node_modules it actually reaches, about
+6MB rather than the ~400MB a full install would be. **Do not run NPM
+Install on the server** — everything needed is in the zip, and a full
+install is where shared hosting usually runs out of memory.
+
+This is not a static site. It needs a long-running Node process, so it is
+set up through cPanel's **Setup Node.js App**, not by dropping files into
+public_html. Each app gets its own application and its own domain or
+subdomain. Full instructions are in the README inside each zip.
+
+The zip is written by the script rather than by system tooling because a
+zip built with Windows tooling can carry backslashes in its entry names,
+and those extract on a Linux host as files with backslashes in the
+filename instead of as directories.
+
+Worth knowing before moving: Next on shared hosting is workable but
+fragile. Passenger stops an idle process, so the first request after a
+quiet spell pays the whole cold start, and memory limits are tight. The
+Vercel deployment is the more reliable home for this stack.
+
 ## Building the zip
 
 ```bash
