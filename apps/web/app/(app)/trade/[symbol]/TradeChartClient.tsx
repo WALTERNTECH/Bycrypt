@@ -28,7 +28,7 @@ interface Fill {
  * The order flow, in the order the questions are actually asked:
  *
  *   1. Which timeframe am I trading?    → sets the chart and the scan window
- *   2. How much am I staking?           → dollars out of the wallet
+ *   2. How much am I investing?          → dollars out of the wallet
  *   3. What return closes it for me?    → the auto-close target
  *   4. Which way does the market say?   → the scan, run on the timeframe above
  *
@@ -290,9 +290,9 @@ export function TradeChartClient({
 
       {!openPosition && (
         <div className="mt-5 space-y-5">
-          {/* Step 2 — stake */}
+          {/* Step 2 — the amount invested */}
           <div>
-            <StepLabel n={2}>How much are you staking?</StepLabel>
+            <StepLabel n={2}>How much are you investing?</StepLabel>
             <p className="mt-1 text-[11px] text-text-tertiary">
               Taken from your wallet. Minimum {formatUsdt(minAmount, { withSymbol: true })}, available{" "}
               <span className="mono-num font-semibold text-text-secondary">
@@ -307,7 +307,7 @@ export function TradeChartClient({
                 value={amount}
                 onChange={(e) => setAmount(e.target.value.replace(/[^0-9.]/g, ""))}
                 placeholder={String(minAmount)}
-                aria-label="Stake amount in USD"
+                aria-label="Investment amount in USD"
               />
               <button
                 type="button"
@@ -321,7 +321,7 @@ export function TradeChartClient({
               <p className="mt-1.5 text-[11px] font-medium text-negative">
                 {parsedAmount > walletBalance
                   ? "That is more than your wallet holds."
-                  : `Minimum stake is ${formatUsdt(minAmount, { withSymbol: true })}.`}
+                  : `The minimum investment is ${formatUsdt(minAmount, { withSymbol: true })}.`}
               </p>
             )}
           </div>
