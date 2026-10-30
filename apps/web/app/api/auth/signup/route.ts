@@ -8,7 +8,14 @@ import { sendAdminAlert } from "@/lib/adminEmail";
 const bodySchema = z.object({
   full_name: z.string().min(1).max(120),
   email: z.string().email(),
-  password: z.string().min(8).max(72),
+  // Matches the checklist on the signup screen exactly. A rule shown to
+  // the user and not enforced here is decoration.
+  password: z
+    .string()
+    .min(8)
+    .max(30)
+    .regex(/[a-zA-Z]/, "letter")
+    .regex(/[0-9]/, "number"),
   ref_code: z.string().max(12).optional().nullable()
 });
 
@@ -23,7 +30,16 @@ export async function POST(req: NextRequest) {
   const json = await req.json().catch(() => null);
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: "Please check your details and try again." }, { status: 400 });
+    const issue = parsed.error?.issues?.[0];
+    const aboutPassword = issue?.path?.[0] === "password";
+    return NextResponse.json(
+      {
+        error: aboutPassword
+          ? "Password must be 8 to 30 characters and include a letter and a number."
+          : "Please check your details and try again."
+      },
+      { status: 400 }
+    );
   }
   const { full_name, email, password, ref_code } = parsed.data;
 

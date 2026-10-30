@@ -5,7 +5,24 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthCard } from "@/components/AuthCard";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
+import { PasswordField, passwordMeetsRules } from "@/components/PasswordField";
 
+/**
+ * Sign up.
+ *
+ * Stripped to the fields and nothing else. There was a placeholder name
+ * in the first box, a sentence under the heading and a hint under the
+ * password, and none of them told anyone anything a labelled field does
+ * not already say — a box labelled Full name does not need "Jane Doe"
+ * greyed out inside it, and that greyed-out text is routinely mistaken
+ * for a value already entered.
+ *
+ * What replaces the explanations is feedback. The password rules check
+ * themselves as you type, the email is validated on the way out of the
+ * field rather than on submit, and the button is only live once the form
+ * would actually be accepted. Nothing is refused without the reason
+ * already being visible.
+ */
 export default function SignupPage() {
   const router = useRouter();
   const [refCode, setRefCode] = useState<string | null>(null);
@@ -18,41 +35,41 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [agreed, setAgreed] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  const emailError = emailTouched && email.length > 0 && !emailValid;
+  const canSubmit =
+    fullName.trim().length > 0 && emailValid && passwordMeetsRules(password) && agreed && !loading;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canSubmit) return;
     setError(null);
-
-    if (!agreed) {
-      setError("You must accept the Terms to continue.");
-      return;
-    }
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
-
     setLoading(true);
     try {
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          full_name: fullName,
-          email,
+          full_name: fullName.trim(),
+          email: email.trim(),
           password,
           ref_code: refCode || null
         })
       });
-      const data = await res.json();
+      const raw = await res.text();
+      const data = raw ? JSON.parse(raw) : null;
       if (!res.ok) {
-        setError(data.error ?? "Something went wrong creating your account.");
+        setError(data?.error ?? "Could not create your account. Try again.");
         return;
       }
       router.push("/");
       router.refresh();
+    } catch {
+      setError("Could not reach the server. Try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -60,8 +77,7 @@ export default function SignupPage() {
 
   return (
     <AuthCard
-      title="Create your account"
-      subtitle="Just the basics — deposit and manage investments in minutes."
+      title="Sign up"
       footer={
         <>
           Already have an account?{" "}
@@ -71,58 +87,63 @@ export default function SignupPage() {
         </>
       }
     >
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-4" onSubmit={handleSubmit} noValidate>
         <FormField label="Full name">
           <input
             required
+            autoComplete="name"
             className={inputClass}
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
-            placeholder="Jane Doe"
-          />
-        </FormField>
-        <FormField label="Email">
-          <input
-            required
-            type="email"
-            className={inputClass}
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-          />
-        </FormField>
-        <FormField label="Password" hint="At least 8 characters.">
-          <input
-            required
-            type="password"
-            className={inputClass}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
           />
         </FormField>
 
-        <label className="flex items-start gap-2 text-xs text-text-secondary">
+        <div>
+          <FormField label="Email">
+            <input
+              required
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              className={`${inputClass} ${emailError ? "border-negative focus:border-negative focus:ring-negative/30" : ""}`}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => setEmailTouched(true)}
+            />
+          </FormField>
+          {emailError && <p className="mt-1.5 text-[11px] font-medium text-negative">Enter a valid email address.</p>}
+        </div>
+
+        <PasswordField value={password} onChange={setPassword} />
+
+        {refCode && (
+          <div className="flex items-center justify-between rounded-lg bg-surface-2 px-3 py-2.5">
+            <span className="text-xs font-medium text-text-secondary">Referral Code</span>
+            <span className="mono-num text-xs font-bold text-text-primary">{refCode}</span>
+          </div>
+        )}
+
+        <label className="flex items-start gap-2.5 text-[12px] leading-relaxed text-text-secondary">
           <input
             type="checkbox"
             checked={agreed}
             onChange={(e) => setAgreed(e.target.checked)}
-            className="mt-0.5 accent-brand"
+            className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-brand"
           />
-          I accept Krypton's Terms of Service and understand that returns are variable and are
-          never guaranteed.
+          <span>
+            I have read and agree to Krypton&apos;s Terms of Service, and understand that the value
+            of a position can fall as well as rise.
+          </span>
         </label>
 
-        {refCode && (
-          <p className="rounded-lg border border-brand/30 bg-brand/10 px-3 py-2 text-xs text-brand">
-            Referred with code {refCode}
+        {error && (
+          <p className="rounded-lg bg-negative-dim px-3 py-2.5 text-[12px] leading-relaxed text-negative">
+            {error}
           </p>
         )}
 
-        {error && <p className="text-sm text-negative">{error}</p>}
-
-        <button type="submit" disabled={loading} className={buttonClass}>
-          {loading ? "Creating account…" : "Create account"}
+        <button type="submit" disabled={!canSubmit} className={buttonClass}>
+          {loading ? "Signing up…" : "Sign up"}
         </button>
       </form>
     </AuthCard>

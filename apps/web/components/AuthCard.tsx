@@ -8,7 +8,9 @@ export function AuthCard({
   footer
 }: {
   title: string;
-  subtitle: string;
+  /** Optional. The signup and login screens carry no explanatory line —
+   *  a field labelled Email needs no sentence telling you it is an email. */
+  subtitle?: string;
   children: React.ReactNode;
   /** Optional: the reset screens have nowhere sensible to send someone. */
   footer?: React.ReactNode;
@@ -26,8 +28,8 @@ export function AuthCard({
         </div>
         <div className="rounded-2xl border border-border bg-surface p-7 shadow-lift sm:p-8">
           <h1 className="text-xl font-extrabold text-text-primary">{title}</h1>
-          <p className="mt-1 text-sm text-text-secondary">{subtitle}</p>
-          <div className="mt-6">{children}</div>
+          {subtitle && <p className="mt-1 text-sm text-text-secondary">{subtitle}</p>}
+          <div className={subtitle ? "mt-6" : "mt-5"}>{children}</div>
         </div>
         {footer && <p className="mt-6 text-center text-sm text-text-secondary">{footer}</p>}
       </div>

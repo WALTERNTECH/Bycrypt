@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AuthCard } from "@/components/AuthCard";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
+import { PasswordField, passwordMeetsRules } from "@/components/PasswordField";
 import { createClient } from "@/lib/supabase/client";
 
 type Stage = "opening" | "ready" | "expired" | "done";
@@ -94,8 +95,8 @@ export default function ResetPasswordPage() {
     e.preventDefault();
     setError(null);
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    if (!passwordMeetsRules(password)) {
+      setError("Password must be 8 to 30 characters and include a letter and a number.");
       return;
     }
     if (password !== confirm) {
@@ -169,30 +170,15 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <AuthCard title="Choose a new password" subtitle="At least 8 characters.">
+    <AuthCard title="Choose a new password">
       <form className="space-y-4" onSubmit={handleSubmit}>
-        <FormField label="New password">
-          <input
-            required
-            type="password"
-            autoComplete="new-password"
-            className={inputClass}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-          />
-        </FormField>
-        <FormField label="Confirm new password">
-          <input
-            required
-            type="password"
-            autoComplete="new-password"
-            className={inputClass}
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            placeholder="••••••••"
-          />
-        </FormField>
+        <PasswordField value={password} onChange={setPassword} label="New password" />
+        <PasswordField
+          value={confirm}
+          onChange={setConfirm}
+          label="Confirm new password"
+          showRules={false}
+        />
 
         {error && <p className="text-sm text-negative">{error}</p>}
 

@@ -6,7 +6,21 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { AuthCard } from "@/components/AuthCard";
 import { FormField, inputClass, buttonClass } from "@/components/FormField";
+import { PasswordField } from "@/components/PasswordField";
 
+/**
+ * Log in.
+ *
+ * Matched to the signup screen: same two fields, same reveal toggle, same
+ * absence of explanatory lines. The password rules are off here — they
+ * belong where a password is being chosen, not where an existing one is
+ * being typed.
+ *
+ * Supabase's own error text is not passed through. "Invalid login
+ * credentials" is the message for a wrong password and for an email with
+ * no account, and showing it verbatim both reads as a system fault and
+ * quietly confirms which addresses are registered.
+ */
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
@@ -15,15 +29,25 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const canSubmit = email.trim().length > 0 && password.length > 0 && !loading;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!canSubmit) return;
     setError(null);
     setLoading(true);
-    const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    const { error: signInError } = await supabase.auth.signInWithPassword({
+      email: email.trim(),
+      password
+    });
     setLoading(false);
 
     if (signInError) {
-      setError(signInError.message);
+      setError(
+        /invalid login credentials/i.test(signInError.message)
+          ? "That email and password don't match an account."
+          : signInError.message
+      );
       return;
     }
     router.push("/");
@@ -33,37 +57,34 @@ export default function LoginPage() {
   return (
     <AuthCard
       title="Log in"
-      subtitle="Welcome back to Krypton."
       footer={
         <>
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link href="/signup" className="font-semibold text-brand">
             Sign up
           </Link>
         </>
       }
     >
-      <form className="space-y-4" onSubmit={handleSubmit}>
+      <form className="space-y-4" onSubmit={handleSubmit} noValidate>
         <FormField label="Email">
           <input
             required
             type="email"
+            inputMode="email"
+            autoComplete="email"
             className={inputClass}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
           />
         </FormField>
-        <FormField label="Password">
-          <input
-            required
-            type="password"
-            className={inputClass}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-          />
-        </FormField>
+
+        <PasswordField
+          value={password}
+          onChange={setPassword}
+          autoComplete="current-password"
+          showRules={false}
+        />
 
         <div className="flex justify-end">
           <Link href="/forgot-password" className="text-xs font-semibold text-brand">
@@ -71,9 +92,13 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        {error && <p className="text-sm text-negative">{error}</p>}
+        {error && (
+          <p className="rounded-lg bg-negative-dim px-3 py-2.5 text-[12px] leading-relaxed text-negative">
+            {error}
+          </p>
+        )}
 
-        <button type="submit" disabled={loading} className={buttonClass}>
+        <button type="submit" disabled={!canSubmit} className={buttonClass}>
           {loading ? "Logging in…" : "Log in"}
         </button>
       </form>
