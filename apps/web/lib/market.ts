@@ -120,6 +120,42 @@ function okxInst(symbol: string): string {
   return symbol.replace(/USDT$/, "-USDT").replace(/USDC$/, "-USDC");
 }
 
+/** BTCUSDT -> BTC-USD. Coinbase quotes most pairs against USD rather
+ *  than USDT; the two differ by a fraction of a percent, which is well
+ *  inside the tolerance of a source that only runs when three other
+ *  venues are unreachable. */
+function coinbaseProduct(symbol: string): string {
+  return symbol.replace(/USDT$/, "-USD").replace(/USDC$/, "-USD");
+}
+
+/** Coinbase serves a fixed set of granularities, so 4h, 1w and 1M are
+ *  built by bucketing a finer series rather than requested directly. */
+const COINBASE_GRANULARITY: Record<Interval, { seconds: number; groupBy: number }> = {
+  "1h": { seconds: 3600, groupBy: 1 },
+  "4h": { seconds: 3600, groupBy: 4 },
+  "1d": { seconds: 86400, groupBy: 1 },
+  "1w": { seconds: 86400, groupBy: 7 },
+  "1M": { seconds: 86400, groupBy: 30 }
+};
+
+/** Collapses n consecutive candles into one: first open, last close,
+ *  highest high, lowest low. */
+function groupCandles(candles: Candle[], size: number): Candle[] {
+  if (size <= 1) return candles;
+  const out: Candle[] = [];
+  for (let i = 0; i + size <= candles.length; i += size) {
+    const bucket = candles.slice(i, i + size);
+    out.push({
+      time: bucket[0].time,
+      open: bucket[0].open,
+      close: bucket[bucket.length - 1].close,
+      high: Math.max(...bucket.map((c) => c.high)),
+      low: Math.min(...bucket.map((c) => c.low))
+    });
+  }
+  return out;
+}
+
 const TIMEOUT_MS = 7000;
 
 async function getJson(url: string): Promise<any | null> {
@@ -190,6 +226,38 @@ async function okxTickers(symbols: string[]): Promise<Record<string, Ticker> | n
   return Object.keys(out).length > 0 ? out : null;
 }
 
+async function coinbaseTickers(symbols: string[]): Promise<Record<string, Ticker> | null> {
+  // No all-products endpoint worth using here, so the listed symbols are
+  // fetched together. There are eight of them.
+  const results = await Promise.all(
+    symbols.map(async (symbol) => {
+      const stats = await getJson(
+        `https://api.exchange.coinbase.com/products/${coinbaseProduct(symbol)}/stats`
+      );
+      const last = num(stats?.last);
+      const open = num(stats?.open);
+      if (!Number.isFinite(last) || last <= 0) return null;
+      return [
+        symbol,
+        {
+          symbol,
+          lastPrice: last,
+          priceChangePercent: open > 0 ? ((last - open) / open) * 100 : 0,
+          highPrice: num(stats?.high),
+          lowPrice: num(stats?.low),
+          volume: num(stats?.volume)
+        } as Ticker
+      ] as const;
+    })
+  );
+
+  const out: Record<string, Ticker> = {};
+  for (const entry of results) {
+    if (entry) out[entry[0]] = entry[1];
+  }
+  return Object.keys(out).length > 0 ? out : null;
+}
+
 async function binanceTickers(symbols: string[]): Promise<Record<string, Ticker> | null> {
   const query = encodeURIComponent(JSON.stringify(symbols));
   const json = await getJson(`${BINANCE_REST_BASE}/api/v3/ticker/24hr?symbols=${query}`);
@@ -249,6 +317,33 @@ async function okxCandles(symbol: string, interval: Interval, limit: number): Pr
   return candles.length > 0 ? candles : null;
 }
 
+async function coinbaseCandles(symbol: string, interval: Interval, limit: number): Promise<Candle[] | null> {
+  const spec = COINBASE_GRANULARITY[interval];
+  if (!spec) return null;
+  const json = await getJson(
+    `https://api.exchange.coinbase.com/products/${coinbaseProduct(symbol)}/candles?granularity=${spec.seconds}`
+  );
+  if (!Array.isArray(json) || json.length === 0) return null;
+
+  // Coinbase orders [time, low, high, open, close, volume] with the time
+  // already in seconds — a different column order from every other venue
+  // here, so it is mapped by hand rather than through toCandles().
+  const base = json
+    .map((k: any[]) => ({
+      time: Math.floor(num(k[0])),
+      low: num(k[1]),
+      high: num(k[2]),
+      open: num(k[3]),
+      close: num(k[4])
+    }))
+    .filter((c) => Number.isFinite(c.time) && Number.isFinite(c.close) && c.close > 0)
+    .reverse();
+
+  const grouped = groupCandles(base, spec.groupBy);
+  const sliced = grouped.slice(-limit);
+  return sliced.length > 0 ? sliced : null;
+}
+
 async function binanceCandles(symbol: string, interval: Interval, limit: number): Promise<Candle[] | null> {
   const json = await getJson(
     `${BINANCE_REST_BASE}/api/v3/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`
@@ -262,12 +357,12 @@ async function binanceCandles(symbol: string, interval: Interval, limit: number)
 /* Public API — first venue that answers wins                          */
 /* ------------------------------------------------------------------ */
 
-export const MARKET_SOURCES = ["bybit", "okx", "binance"] as const;
+export const MARKET_SOURCES = ["bybit", "okx", "coinbase", "binance"] as const;
 export type MarketSource = (typeof MARKET_SOURCES)[number];
 
 export async function fetchTickers(symbols: string[]): Promise<Record<string, Ticker>> {
   if (symbols.length === 0) return {};
-  const attempts = [bybitTickers, okxTickers, binanceTickers];
+  const attempts = [bybitTickers, okxTickers, coinbaseTickers, binanceTickers];
   for (const attempt of attempts) {
     const result = await attempt(symbols);
     if (result) return result;
@@ -287,6 +382,12 @@ export async function fetchPrice(symbol: string): Promise<number | null> {
   const okxPrice = num(okx?.data?.[0]?.last);
   if (Number.isFinite(okxPrice) && okxPrice > 0) return okxPrice;
 
+  const coinbase = await getJson(
+    `https://api.exchange.coinbase.com/products/${coinbaseProduct(symbol)}/ticker`
+  );
+  const coinbasePrice = num(coinbase?.price);
+  if (Number.isFinite(coinbasePrice) && coinbasePrice > 0) return coinbasePrice;
+
   const binance = await getJson(`${BINANCE_REST_BASE}/api/v3/ticker/price?symbol=${symbol}`);
   const binancePrice = num(binance?.price);
   if (Number.isFinite(binancePrice) && binancePrice > 0) return binancePrice;
@@ -295,7 +396,7 @@ export async function fetchPrice(symbol: string): Promise<number | null> {
 }
 
 export async function fetchCandles(symbol: string, interval: Interval, limit = 300): Promise<Candle[]> {
-  const attempts = [bybitCandles, okxCandles, binanceCandles];
+  const attempts = [bybitCandles, okxCandles, coinbaseCandles, binanceCandles];
   for (const attempt of attempts) {
     const result = await attempt(symbol, interval, limit);
     if (result) return result;
@@ -306,9 +407,10 @@ export async function fetchCandles(symbol: string, interval: Interval, limit = 3
 /** Which venues are answering right now. Used by the health endpoint so
  *  a regional block shows up as a reading rather than as silence. */
 export async function probeSources(symbol = "BTCUSDT"): Promise<Record<MarketSource, number | null>> {
-  const [bybit, okx, binance] = await Promise.all([
+  const [bybit, okx, coinbase, binance] = await Promise.all([
     getJson(`https://api.bybit.com/v5/market/tickers?category=spot&symbol=${symbol}`),
     getJson(`https://www.okx.com/api/v5/market/ticker?instId=${okxInst(symbol)}`),
+    getJson(`https://api.exchange.coinbase.com/products/${coinbaseProduct(symbol)}/ticker`),
     getJson(`${BINANCE_REST_BASE}/api/v3/ticker/price?symbol=${symbol}`)
   ]);
   const pick = (v: unknown) => {
@@ -318,6 +420,7 @@ export async function probeSources(symbol = "BTCUSDT"): Promise<Record<MarketSou
   return {
     bybit: pick(bybit?.result?.list?.[0]?.lastPrice),
     okx: pick(okx?.data?.[0]?.last),
+    coinbase: pick(coinbase?.price),
     binance: pick(binance?.price)
   };
 }
