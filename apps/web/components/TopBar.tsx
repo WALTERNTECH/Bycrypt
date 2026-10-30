@@ -16,7 +16,7 @@ import { RefreshButton } from "./RefreshButton";
  * arrives; the glyph is what Bybit uses and it says "you" without
  * pretending to be anything else.
  */
-export async function TopBar({ simulated = false }: { simulated?: boolean }) {
+export async function TopBar() {
   const supabase = createClient();
   const {
     data: { user }
@@ -51,15 +51,6 @@ export async function TopBar({ simulated = false }: { simulated?: boolean }) {
           <path d="M4.8 20a7.2 7.2 0 0 1 14.4 0" strokeLinecap="round" />
         </svg>
       </Link>
-
-      {simulated && (
-        <span
-          title="Position gains and losses on this account are generated for testing, not real market results."
-          className="shrink-0 rounded-full bg-[#17181C] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white"
-        >
-          Demo
-        </span>
-      )}
 
       <SearchPill symbols={symbols ?? []} />
 

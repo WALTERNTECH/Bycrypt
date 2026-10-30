@@ -44,7 +44,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             pt-[env(safe-area-inset-top)] keeps the bar clear of the notch
             when launched from the home screen. */}
         <header className="sticky top-0 z-40 bg-header pt-[env(safe-area-inset-top)]">
-          <TopBar simulated={simulated} />
+          <TopBar />
         </header>
 
         <main className="mx-auto max-w-lg pb-24">{children}</main>

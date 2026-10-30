@@ -59,7 +59,7 @@ export function SearchPill({ symbols }: { symbols: { symbol: string; display_nam
 
   return (
     <form onSubmit={submit} className="min-w-0 flex-1">
-      <div className="flex h-9 items-center gap-2 rounded-full bg-gradient-to-r from-[#FFEFC9] via-[#FFF8E8] to-[#F4F5F7] px-3">
+      <label className="flex h-9 cursor-text items-center gap-2 rounded-full bg-gradient-to-r from-[#FFEFC9] via-[#FFF8E8] to-[#F4F5F7] px-3">
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -79,18 +79,7 @@ export function SearchPill({ symbols }: { symbols: { symbol: string; display_nam
           className="min-w-0 flex-1 bg-transparent text-[13px] font-medium text-text-primary outline-none placeholder:text-[#7A6B4A]"
           placeholder={`🔥 ${coin}/USDT`}
         />
-        {!focused && !value && current.t && (
-          <span
-            aria-hidden
-            className={`mono-num shrink-0 text-[11px] font-bold ${
-              current.t.priceChangePercent >= 0 ? "text-positive" : "text-negative"
-            }`}
-          >
-            {current.t.priceChangePercent >= 0 ? "+" : ""}
-            {current.t.priceChangePercent.toFixed(2)}%
-          </span>
-        )}
-      </div>
+      </label>
     </form>
   );
 }
