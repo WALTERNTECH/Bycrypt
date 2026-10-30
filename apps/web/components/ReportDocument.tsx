@@ -3,10 +3,17 @@ import type { ReportData, ReportPosition } from "@/lib/report";
 /**
  * The Krypton report document.
  *
- * Laid out for ImageResponse, which supports a flexbox subset and
- * rasterises server-side — so every element needs an explicit display,
- * and the chart is built from columns rather than an SVG path because
- * boxes are the part of this engine that renders with certainty.
+ * Laid out for ImageResponse, which rasterises a flexbox subset
+ * server-side. That engine has one rule worth stating up front, because
+ * breaking it fails the whole render rather than one element: a div with
+ * more than one child must declare display explicitly. Interpolated text
+ * counts — `{name} · {email}` is two children, not one string.
+ *
+ * So everything here follows one discipline: every div carries an explicit
+ * display, and any text built from more than one value is composed into a
+ * single string before it gets near the markup. The Txt helper exists to
+ * make that the path of least resistance rather than something to
+ * remember.
  *
  * Kept apart from the route so it can be rendered without a session.
  */
@@ -27,9 +34,9 @@ const money = (n: number, dp = 2) =>
 
 const compact = (n: number) => {
   const a = Math.abs(n);
-  if (a >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`;
-  if (a >= 1_000) return `$${(n / 1_000).toFixed(2)}K`;
-  return money(n);
+  if (a >= 1_000_000) return `${n < 0 ? "-" : ""}$${(Math.abs(n) / 1_000_000).toFixed(2)}M`;
+  if (a >= 1_000) return `${n < 0 ? "-" : ""}$${(Math.abs(n) / 1_000).toFixed(1)}K`;
+  return money(n, 0);
 };
 
 const pct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(2)}%`;
@@ -45,6 +52,37 @@ const dateTime = (iso: string) =>
     hour: "2-digit",
     minute: "2-digit"
   });
+
+const price = (v: number | null) => (v === null ? "—" : v >= 100 ? v.toFixed(2) : v.toFixed(6));
+
+/** A single run of text. Always one child, always an explicit display. */
+function Txt({
+  children,
+  size = 14,
+  weight = 400,
+  color = INK,
+  style
+}: {
+  children: string;
+  size?: number;
+  weight?: 400 | 700;
+  color?: string;
+  style?: Record<string, string | number>;
+}) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        fontSize: `${size}px`,
+        fontWeight: weight,
+        color,
+        ...(style ?? {})
+      }}
+    >
+      {children}
+    </div>
+  );
+}
 
 export function Report({ r }: { r: ReportData }) {
   const profitUp = r.netProfit >= 0;
@@ -68,53 +106,56 @@ export function Report({ r }: { r: ReportData }) {
           <div
             style={{
               display: "flex",
-              width: "44px",
-              height: "44px",
-              borderRadius: "11px",
+              width: "46px",
+              height: "46px",
+              borderRadius: "12px",
               backgroundColor: BRAND,
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "26px",
-              fontWeight: 800,
+              fontSize: "27px",
+              fontWeight: 700,
               color: INK
             }}
           >
             K
           </div>
           <div style={{ display: "flex", flexDirection: "column", marginLeft: "14px" }}>
-            <div style={{ fontSize: "26px", fontWeight: 800 }}>Krypton Report</div>
-            <div style={{ fontSize: "15px", color: MUTED, marginTop: "3px" }}>
-              {r.accountName} · {r.accountEmail}
-            </div>
+            <Txt size={27} weight={700}>
+              Krypton Report
+            </Txt>
+            <Txt size={15} color={MUTED} style={{ marginTop: "3px" }}>
+              {`${r.accountName} · ${r.accountEmail}`}
+            </Txt>
           </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
-          <div style={{ fontSize: "13px", color: SOFT }}>Generated</div>
-          <div style={{ fontSize: "16px", fontWeight: 700, marginTop: "3px" }}>
+          <Txt size={13} color={SOFT}>
+            Generated
+          </Txt>
+          <Txt size={16} weight={700} style={{ marginTop: "3px" }}>
             {dateTime(r.generatedAt)}
-          </div>
+          </Txt>
           {r.simulated && (
-            <div
+            <Txt
+              size={12}
+              weight={700}
+              color="#FFFFFF"
               style={{
-                display: "flex",
-                marginTop: "8px",
+                marginTop: "9px",
                 backgroundColor: INK,
-                color: "#FFFFFF",
-                fontSize: "12px",
-                fontWeight: 700,
                 padding: "5px 11px",
                 borderRadius: "999px"
               }}
             >
               SIMULATED TEST ACCOUNT — FIGURES ARE NOT REAL
-            </div>
+            </Txt>
           )}
         </div>
       </div>
 
       {/* ---------------- headline numbers ---------------- */}
-      <div style={{ display: "flex", marginTop: "30px" }}>
+      <div style={{ display: "flex", marginTop: "32px" }}>
         <Stat label="Total assets" value={money(r.totalAssets)} big />
         <Stat label="Deposited" value={money(r.totalDeposited)} />
         <Stat label="Withdrawn" value={money(r.totalWithdrawn)} />
@@ -127,53 +168,49 @@ export function Report({ r }: { r: ReportData }) {
         />
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          marginTop: "12px",
-          fontSize: "13px",
-          color: SOFT
-        }}
-      >
-        Net profit = total assets now ({money(r.totalAssets)}) + withdrawn ({money(r.totalWithdrawn)}) −
-        deposited ({money(r.totalDeposited)})
-      </div>
+      <Txt size={13} color={SOFT} style={{ marginTop: "14px" }}>
+        {`Net profit = total assets now ${money(r.totalAssets)} + withdrawn ${money(
+          r.totalWithdrawn
+        )} − deposited ${money(r.totalDeposited)}`}
+      </Txt>
 
       {/* ---------------- balance history ---------------- */}
-      <SectionTitle>Balance history</SectionTitle>
+      <Txt size={19} weight={700} style={{ margin: "30px 0 12px" }}>
+        Balance history
+      </Txt>
       <BalanceChart r={r} />
 
-      {/* ---------------- split: positions + transactions ---------------- */}
-      <div style={{ display: "flex", marginTop: "26px" }}>
+      {/* ---------------- positions + transactions ---------------- */}
+      <div style={{ display: "flex", marginTop: "28px" }}>
         <div style={{ display: "flex", flexDirection: "column", width: "700px" }}>
-          <div style={{ fontSize: "19px", fontWeight: 800, marginBottom: "12px" }}>
+          <Txt size={19} weight={700} style={{ marginBottom: "12px" }}>
             Open positions
-          </div>
+          </Txt>
           {r.openPositions.length === 0 ? (
             <Empty>No positions are open.</Empty>
           ) : (
             <PositionTable rows={r.openPositions} open />
           )}
 
-          <div style={{ fontSize: "19px", fontWeight: 800, margin: "24px 0 12px" }}>
+          <Txt size={19} weight={700} style={{ margin: "26px 0 12px" }}>
             Closed positions
-          </div>
+          </Txt>
           {r.closedPositions.length === 0 ? (
             <Empty>Nothing closed yet.</Empty>
           ) : (
-            <PositionTable rows={r.closedPositions.slice(0, 7)} />
+            <PositionTable rows={r.closedPositions.slice(0, 6)} />
           )}
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", width: "360px", marginLeft: "44px" }}>
-          <div style={{ fontSize: "19px", fontWeight: 800, marginBottom: "12px" }}>
+          <Txt size={19} weight={700} style={{ marginBottom: "12px" }}>
             Transaction history
-          </div>
+          </Txt>
           {r.transactions.length === 0 ? (
             <Empty>No deposits or withdrawals.</Empty>
           ) : (
             <div style={{ display: "flex", flexDirection: "column" }}>
-              {r.transactions.slice(0, 8).map((t, i) => (
+              {r.transactions.slice(0, 7).map((t, i) => (
                 <div
                   key={i}
                   style={{
@@ -185,24 +222,18 @@ export function Report({ r }: { r: ReportData }) {
                   }}
                 >
                   <div style={{ display: "flex", flexDirection: "column" }}>
-                    <div style={{ fontSize: "15px", fontWeight: 700 }}>
+                    <Txt size={15} weight={700}>
                       {t.kind === "deposit" ? "Deposit" : "Withdrawal"}
-                    </div>
-                    <div style={{ fontSize: "12px", color: SOFT, marginTop: "2px" }}>
-                      {dateTime(t.at)}
-                      {t.status !== "confirmed" && t.status !== "completed" ? ` · ${t.status}` : ""}
-                    </div>
+                    </Txt>
+                    <Txt size={12} color={SOFT} style={{ marginTop: "2px" }}>
+                      {t.status === "confirmed" || t.status === "completed"
+                        ? dateTime(t.at)
+                        : `${dateTime(t.at)} · ${t.status}`}
+                    </Txt>
                   </div>
-                  <div
-                    style={{
-                      fontSize: "16px",
-                      fontWeight: 700,
-                      color: t.kind === "deposit" ? UP : INK
-                    }}
-                  >
-                    {t.kind === "deposit" ? "+" : "−"}
-                    {money(t.amount)}
-                  </div>
+                  <Txt size={16} weight={700} color={t.kind === "deposit" ? UP : INK}>
+                    {`${t.kind === "deposit" ? "+" : "−"}${money(t.amount)}`}
+                  </Txt>
                 </div>
               ))}
             </div>
@@ -218,7 +249,9 @@ export function Report({ r }: { r: ReportData }) {
               padding: "18px"
             }}
           >
-            <div style={{ fontSize: "15px", fontWeight: 800, marginBottom: "10px" }}>Breakdown</div>
+            <Txt size={15} weight={700} style={{ marginBottom: "10px" }}>
+              Breakdown
+            </Txt>
             <Line label="Wallet" value={money(r.wallet)} />
             <Line label="In positions" value={money(r.inPositions)} />
             <Line label="Realised P&L" value={money(r.realised)} tone={r.realised >= 0 ? UP : DOWN} />
@@ -227,7 +260,7 @@ export function Report({ r }: { r: ReportData }) {
               value={money(r.unrealised)}
               tone={r.unrealised >= 0 ? UP : DOWN}
             />
-            <div style={{ display: "flex", height: "1px", backgroundColor: LINE, margin: "9px 0" }} />
+            <div style={{ display: "flex", height: "1px", backgroundColor: LINE, margin: "10px 0" }} />
             <Line label="Total assets" value={money(r.totalAssets)} bold />
           </div>
         </div>
@@ -240,16 +273,14 @@ export function Report({ r }: { r: ReportData }) {
           display: "flex",
           justifyContent: "space-between",
           borderTop: `1px solid ${LINE}`,
-          paddingTop: "16px",
-          fontSize: "12px",
-          color: SOFT
+          paddingTop: "16px"
         }}
       >
-        <div style={{ display: "flex" }}>
-          Krypton · figures as at {dateTime(r.generatedAt)}. Open positions are valued at the market
-          at that moment and will have moved since.
-        </div>
-        <div style={{ display: "flex" }}>krypton.app</div>
+        <Txt size={12} color={SOFT}>
+          {`Krypton · figures as at ${dateTime(
+            r.generatedAt
+          )}. Open positions are valued at the market at that moment and will have moved since.`}
+        </Txt>
       </div>
     </div>
   );
@@ -257,28 +288,15 @@ export function Report({ r }: { r: ReportData }) {
 
 /* ---------------- pieces ---------------- */
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function Empty({ children }: { children: string }) {
   return (
-    <div style={{ display: "flex", fontSize: "19px", fontWeight: 800, margin: "30px 0 12px" }}>
-      {children}
-    </div>
-  );
-}
-
-function Empty({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      style={{
-        display: "flex",
-        backgroundColor: PANEL,
-        borderRadius: "12px",
-        padding: "22px",
-        fontSize: "14px",
-        color: MUTED
-      }}
+    <Txt
+      size={14}
+      color={MUTED}
+      style={{ backgroundColor: PANEL, borderRadius: "12px", padding: "22px" }}
     >
       {children}
-    </div>
+    </Txt>
   );
 }
 
@@ -296,22 +314,17 @@ function Stat({
   big?: boolean;
 }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", marginRight: "56px" }}>
-      <div style={{ fontSize: "14px", color: MUTED }}>{label}</div>
-      <div
-        style={{
-          fontSize: big ? "40px" : "30px",
-          fontWeight: 800,
-          marginTop: "6px",
-          color: tone ?? INK
-        }}
-      >
+    <div style={{ display: "flex", flexDirection: "column", marginRight: "58px" }}>
+      <Txt size={14} color={MUTED}>
+        {label}
+      </Txt>
+      <Txt size={big ? 40 : 30} weight={700} color={tone ?? INK} style={{ marginTop: "6px" }}>
         {value}
-      </div>
+      </Txt>
       {sub && (
-        <div style={{ fontSize: "15px", fontWeight: 700, marginTop: "3px", color: tone ?? MUTED }}>
+        <Txt size={15} weight={700} color={tone ?? MUTED} style={{ marginTop: "3px" }}>
           {sub}
-        </div>
+        </Txt>
       )}
     </div>
   );
@@ -330,10 +343,12 @@ function Line({
 }) {
   return (
     <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0" }}>
-      <div style={{ fontSize: "14px", color: bold ? INK : MUTED, fontWeight: bold ? 700 : 400 }}>
+      <Txt size={14} weight={bold ? 700 : 400} color={bold ? INK : MUTED}>
         {label}
-      </div>
-      <div style={{ fontSize: "14px", fontWeight: 700, color: tone ?? INK }}>{value}</div>
+      </Txt>
+      <Txt size={14} weight={700} color={tone ?? INK}>
+        {value}
+      </Txt>
     </div>
   );
 }
@@ -341,8 +356,7 @@ function Line({
 function BalanceChart({ r }: { r: ReportData }) {
   const values = r.balanceHistory.map((p) => p.value);
   const max = Math.max(...values, 1);
-  const min = 0;
-  const height = 210;
+  const height = 200;
 
   return (
     <div
@@ -355,59 +369,60 @@ function BalanceChart({ r }: { r: ReportData }) {
       }}
     >
       <div style={{ display: "flex", alignItems: "baseline" }}>
-        <div style={{ fontSize: "34px", fontWeight: 800 }}>{compact(r.totalAssets)}</div>
-        <div
-          style={{
-            fontSize: "16px",
-            fontWeight: 700,
-            marginLeft: "12px",
-            color: r.netProfit >= 0 ? UP : DOWN
-          }}
+        <Txt size={34} weight={700}>
+          {compact(r.totalAssets)}
+        </Txt>
+        <Txt
+          size={16}
+          weight={700}
+          color={r.netProfit >= 0 ? UP : DOWN}
+          style={{ marginLeft: "12px" }}
         >
-          {money(r.netProfit)} all time
-        </div>
+          {`${money(r.netProfit)} all time`}
+        </Txt>
       </div>
 
-      <div style={{ display: "flex", alignItems: "flex-end", height: `${height}px`, marginTop: "16px" }}>
-        {/* y axis */}
+      <div style={{ display: "flex", alignItems: "flex-end", marginTop: "16px" }}>
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             justifyContent: "space-between",
             height: `${height}px`,
-            width: "86px",
-            fontSize: "12px",
-            color: SOFT
+            width: "90px"
           }}
         >
-          <div style={{ display: "flex" }}>{compact(max)}</div>
-          <div style={{ display: "flex" }}>{compact(max * 0.66)}</div>
-          <div style={{ display: "flex" }}>{compact(max * 0.33)}</div>
-          <div style={{ display: "flex" }}>{compact(min)}</div>
+          <Txt size={12} color={SOFT}>
+            {compact(max)}
+          </Txt>
+          <Txt size={12} color={SOFT}>
+            {compact(max * 0.66)}
+          </Txt>
+          <Txt size={12} color={SOFT}>
+            {compact(max * 0.33)}
+          </Txt>
+          <Txt size={12} color={SOFT}>
+            {compact(0)}
+          </Txt>
         </div>
 
-        {/* Columns rather than a path: this layout engine renders boxes
-            with certainty, and at this density the series still reads as
-            a continuous area. */}
+        {/* Columns rather than a path: boxes are the part of this layout
+            engine that renders with certainty, and at this density the
+            series still reads as a continuous area. */}
         <div style={{ display: "flex", alignItems: "flex-end", height: `${height}px`, flex: 1 }}>
-          {r.balanceHistory.map((p, i) => {
-            const h = Math.max(2, Math.round((p.value / max) * height));
-            const last = i === r.balanceHistory.length - 1;
-            return (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  flex: 1,
-                  height: `${h}px`,
-                  marginLeft: "2px",
-                  borderRadius: "3px 3px 0 0",
-                  backgroundColor: last ? BRAND : "#C9D3E8"
-                }}
-              />
-            );
-          })}
+          {r.balanceHistory.map((p, i) => (
+            <div
+              key={i}
+              style={{
+                display: "flex",
+                flex: 1,
+                height: `${Math.max(2, Math.round((p.value / max) * height))}px`,
+                marginLeft: "2px",
+                borderRadius: "3px 3px 0 0",
+                backgroundColor: i === r.balanceHistory.length - 1 ? BRAND : "#C3D0E6"
+              }}
+            />
+          ))}
         </div>
       </div>
 
@@ -415,47 +430,55 @@ function BalanceChart({ r }: { r: ReportData }) {
         style={{
           display: "flex",
           justifyContent: "space-between",
-          marginLeft: "86px",
-          marginTop: "9px",
-          fontSize: "12px",
-          color: SOFT
+          marginLeft: "90px",
+          marginTop: "9px"
         }}
       >
-        <div style={{ display: "flex" }}>
-          {r.balanceHistory.length > 0 ? shortDate(new Date(r.balanceHistory[0].t).toISOString()) : ""}
-        </div>
-        <div style={{ display: "flex" }}>Today</div>
+        <Txt size={12} color={SOFT}>
+          {r.balanceHistory.length > 0
+            ? shortDate(new Date(r.balanceHistory[0].t).toISOString())
+            : ""}
+        </Txt>
+        <Txt size={12} color={SOFT}>
+          Today
+        </Txt>
       </div>
     </div>
   );
 }
 
 function PositionTable({ rows, open }: { rows: ReportPosition[]; open?: boolean }) {
+  const COLS = [
+    { label: "Market", width: "152px" },
+    { label: "Staked", width: "108px" },
+    { label: "Entry", width: "108px" },
+    { label: open ? "Now" : "Exit", width: "108px" },
+    { label: "Value", width: "108px" }
+  ];
+
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
       <div
         style={{
           display: "flex",
-          fontSize: "12px",
-          color: SOFT,
           paddingBottom: "8px",
           borderBottom: `1px solid ${LINE}`
         }}
       >
-        <div style={{ display: "flex", width: "150px" }}>Market</div>
-        <div style={{ display: "flex", width: "110px" }}>Staked</div>
-        <div style={{ display: "flex", width: "110px" }}>Entry</div>
-        <div style={{ display: "flex", width: "110px" }}>{open ? "Now" : "Exit"}</div>
-        <div style={{ display: "flex", width: "110px" }}>Value</div>
+        {COLS.map((c) => (
+          <Txt key={c.label} size={12} color={SOFT} style={{ width: c.width }}>
+            {c.label}
+          </Txt>
+        ))}
         <div style={{ display: "flex", flex: 1, justifyContent: "flex-end" }}>
-          {open ? "Unrealised" : "Result"}
+          <Txt size={12} color={SOFT}>
+            {open ? "Unrealised" : "Result"}
+          </Txt>
         </div>
       </div>
 
       {rows.map((p, i) => {
         const up = p.pnl >= 0;
-        const price = (v: number | null) =>
-          v === null ? "—" : v >= 100 ? v.toFixed(2) : v.toFixed(6);
         return (
           <div
             key={i}
@@ -466,26 +489,26 @@ function PositionTable({ rows, open }: { rows: ReportPosition[]; open?: boolean 
               borderBottom: `1px solid ${LINE}`
             }}
           >
-            <div style={{ display: "flex", flexDirection: "column", width: "150px" }}>
-              <div style={{ fontSize: "15px", fontWeight: 700 }}>
-                {p.symbol.replace("USDT", "")}
-                <span style={{ color: SOFT, fontWeight: 400 }}>/USDT</span>
-              </div>
-              <div style={{ fontSize: "11px", color: SOFT, marginTop: "2px" }}>
-                {p.side}
-                {p.timeframe ? ` · ${p.timeframe}` : ""} · {shortDate(p.openedAt)}
-              </div>
+            <div style={{ display: "flex", flexDirection: "column", width: "152px" }}>
+              <Txt size={15} weight={700}>
+                {`${p.symbol.replace("USDT", "")}/USDT`}
+              </Txt>
+              <Txt size={11} color={SOFT} style={{ marginTop: "2px" }}>
+                {`${p.side}${p.timeframe ? ` · ${p.timeframe}` : ""} · ${shortDate(p.openedAt)}`}
+              </Txt>
             </div>
-            <div style={{ display: "flex", width: "110px", fontSize: "14px" }}>{money(p.staked)}</div>
-            <div style={{ display: "flex", width: "110px", fontSize: "14px", color: MUTED }}>
+            <Txt size={14} style={{ width: "108px" }}>
+              {money(p.staked)}
+            </Txt>
+            <Txt size={14} color={MUTED} style={{ width: "108px" }}>
               {price(p.entryPrice)}
-            </div>
-            <div style={{ display: "flex", width: "110px", fontSize: "14px", color: MUTED }}>
+            </Txt>
+            <Txt size={14} color={MUTED} style={{ width: "108px" }}>
               {price(p.livePrice)}
-            </div>
-            <div style={{ display: "flex", width: "110px", fontSize: "14px", fontWeight: 700 }}>
+            </Txt>
+            <Txt size={14} weight={700} style={{ width: "108px" }}>
               {money(p.value)}
-            </div>
+            </Txt>
             <div
               style={{
                 display: "flex",
@@ -494,13 +517,12 @@ function PositionTable({ rows, open }: { rows: ReportPosition[]; open?: boolean 
                 alignItems: "flex-end"
               }}
             >
-              <div style={{ fontSize: "15px", fontWeight: 800, color: up ? UP : DOWN }}>
-                {up ? "+" : "−"}
-                {money(Math.abs(p.pnl))}
-              </div>
-              <div style={{ fontSize: "12px", fontWeight: 700, color: up ? UP : DOWN }}>
+              <Txt size={15} weight={700} color={up ? UP : DOWN}>
+                {`${up ? "+" : "−"}${money(Math.abs(p.pnl))}`}
+              </Txt>
+              <Txt size={12} weight={700} color={up ? UP : DOWN}>
                 {pct(p.pnlPct)}
-              </div>
+              </Txt>
             </div>
           </div>
         );
