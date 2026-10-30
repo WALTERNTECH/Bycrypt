@@ -130,10 +130,7 @@ export default function SignupPage() {
             onChange={(e) => setAgreed(e.target.checked)}
             className="mt-0.5 h-3.5 w-3.5 shrink-0 accent-brand"
           />
-          <span>
-            I have read and agree to Krypton&apos;s Terms of Service, and understand that the value
-            of a position can fall as well as rise.
-          </span>
+          <span>I have read and agree to Krypton&apos;s Terms of Service.</span>
         </label>
 
         {error && (
