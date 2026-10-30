@@ -1,3 +1,5 @@
+import { fetchPrice } from "./market";
+
 // Server-only. On-chain BTC deposit verification against a public Esplora
 // explorer, mirroring the contract trongrid.ts provided for USDT-TRC20.
 //
@@ -64,22 +66,15 @@ async function esplora(path: string): Promise<Response | null> {
 }
 
 /**
- * BTC/USD for pricing the deposit. Binance's public ticker is already the
- * price source this platform displays, so using it here keeps the figure
- * a user sees and the figure they are credited on the same feed.
+ * BTC/USD for pricing the deposit.
+ *
+ * This used to call Binance directly, which answers 451 from the region
+ * these functions run in — so the rate came back null, and starting a
+ * deposit failed before the user was ever shown an address. It now goes
+ * through the same multi-venue lookup every other price in the app uses.
  */
 export async function fetchBtcUsdRate(): Promise<number | null> {
-  try {
-    const res = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", {
-      cache: "no-store"
-    });
-    if (!res.ok) return null;
-    const json = await res.json();
-    const price = Number(json?.price);
-    return Number.isFinite(price) && price > 0 ? price : null;
-  } catch {
-    return null;
-  }
+  return fetchPrice("BTCUSDT");
 }
 
 export async function verifyBitcoinDeposit(

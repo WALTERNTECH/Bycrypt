@@ -71,7 +71,8 @@ export function LiveBalanceCard({
         entryPrice: p.entryPrice,
         livePrice: t?.lastPrice ?? null,
         fallbackPct: t?.priceChangePercent ?? null,
-        targetGainPct: p.targetGainPct
+        targetGainPct: p.targetGainPct,
+        startedAt: p.startedAt
       });
       return { settles: acc.settles + s.settles, value: acc.value + s.value, pnl: acc.pnl + s.pnl };
     },

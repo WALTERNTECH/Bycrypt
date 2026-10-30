@@ -1,4 +1,4 @@
-import { fetchPrice, fetchTickers } from "./binance";
+import { fetchPrice, fetchTickers } from "./market";
 import { positionState, type OpenPositionRow } from "./position";
 
 /**
@@ -55,7 +55,8 @@ export async function valuePosition(row: OpenPositionRow) {
     entryPrice: row.entryPrice,
     livePrice,
     fallbackPct,
-    targetGainPct: row.targetGainPct
+    targetGainPct: row.targetGainPct,
+    startedAt: row.startedAt
   });
 
   return { state, livePrice };

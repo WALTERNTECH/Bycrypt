@@ -5,7 +5,7 @@ import { createChart, ColorType, type IChartApi, type ISeriesApi } from "lightwe
 import { usePositionState } from "@/hooks/usePositionState";
 import { formatUsdt, formatPct } from "@/lib/format";
 import { coinMoveForTarget } from "@/lib/leverage";
-import { fetchCandles, type Interval } from "@/lib/binance";
+import { fetchCandles, type Interval } from "@/lib/market";
 import type { OpenPositionRow } from "@/lib/position";
 
 /**

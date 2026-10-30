@@ -6,6 +6,7 @@ import { SettlementValue } from "@/components/SettlementValue";
 import { ButtonLink } from "@/components/ui";
 import { formatUsdt, formatPct, formatDate } from "@/lib/format";
 import { mapPositionRow } from "@/lib/position";
+import { RiskNotice } from "@/components/RiskNotice";
 
 export default async function InvestmentsPage() {
   const supabase = createClient();
@@ -127,6 +128,7 @@ export default async function InvestmentsPage() {
           );
         })}
       </div>
+      <RiskNotice />
     </div>
   );
 }

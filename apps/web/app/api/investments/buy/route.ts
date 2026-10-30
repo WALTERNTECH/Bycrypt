@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { pickTopGainer } from "@/lib/pickTopGainer";
-import { fetchPrice, isChartInterval, type ChartInterval } from "@/lib/binance";
+import { fetchPrice, isChartInterval, type ChartInterval } from "@/lib/market";
 import { isTargetGain } from "@/lib/position";
 import { scanMarket } from "@/lib/scan";
 

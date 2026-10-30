@@ -4,7 +4,7 @@ import { useState } from "react";
 import { CandleChart } from "@/components/CandleChart";
 import { useLiveTickers } from "@/hooks/useLiveTickers";
 import { formatPct } from "@/lib/format";
-import { CHART_INTERVALS, INTERVAL_LABEL, type ChartInterval } from "@/lib/binance";
+import { CHART_INTERVALS, INTERVAL_LABEL, type ChartInterval } from "@/lib/market";
 
 export function MarketDetailClient({ symbol, displayName }: { symbol: string; displayName: string }) {
   const [interval, setInterval] = useState<ChartInterval>("1d");

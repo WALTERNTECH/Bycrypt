@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { DepositForm } from "./DepositForm";
+import { RiskNotice } from "@/components/RiskNotice";
 
 export default async function DepositPage() {
   const supabase = createClient();
@@ -24,6 +25,7 @@ export default async function DepositPage() {
             telegramUrl={configMap.telegram_support_url ?? "https://t.me/KRYPTONinv"}
         />
       </div>
+      <RiskNotice />
     </div>
   );
 }

@@ -128,9 +128,32 @@ export function DepositForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount_usd: parsedAmount })
       });
-      const data = await res.json();
+
+      // Read the body as text first. A route that crashes answers with an
+      // HTML error page, and res.json() throws on that — which is exactly
+      // what used to skip past setError into the finally and leave the
+      // button sitting there having said nothing at all.
+      const raw = await res.text();
+      let data: any = null;
+      try {
+        data = raw ? JSON.parse(raw) : null;
+      } catch {
+        data = null;
+      }
+
       if (!res.ok) {
-        setError(data.error ?? "Could not start that deposit.");
+        setError(
+          data?.error ??
+            (res.status >= 500
+              ? "The server could not start that deposit (error " +
+                res.status +
+                "). Try again in a moment."
+              : "Could not start that deposit (error " + res.status + ").")
+        );
+        return;
+      }
+      if (!data?.deposit_id) {
+        setError("The server replied without a deposit to continue with. Try again.");
         return;
       }
       setIntent(data);
@@ -151,7 +174,17 @@ export function DepositForm({
     pollCount.current = 0;
     try {
       const res = await fetch(`/api/deposits/${intent.deposit_id}`, { method: "POST" });
-      const data = await res.json();
+      const raw = await res.text();
+      let data: any = null;
+      try {
+        data = raw ? JSON.parse(raw) : null;
+      } catch {
+        data = null;
+      }
+      if (!data?.status) {
+        setError("The check could not be completed (error " + res.status + "). Try again in a moment.");
+        return;
+      }
       setOutcome(data);
       if (data.status === "confirmed") router.refresh();
     } catch {
@@ -280,6 +313,12 @@ export function DepositForm({
               {starting ? "Preparing…" : "Continue"}
             </Button>
           )
+        )}
+
+        {error && !intent && (
+          <p className="mt-2 rounded-lg bg-negative-dim px-3 py-2.5 text-[12px] leading-relaxed text-negative">
+            {error}
+          </p>
         )}
       </section>
 

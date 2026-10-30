@@ -2,7 +2,7 @@
 
 import { useLiveTickers } from "./useLiveTickers";
 import { positionState, type OpenPositionRow, type PositionState } from "@/lib/position";
-import type { Ticker } from "@/lib/binance";
+import type { Ticker } from "@/lib/market";
 
 /**
  * Live state for one open position.
@@ -26,7 +26,8 @@ export function usePositionState(row: OpenPositionRow): {
     entryPrice: row.entryPrice,
     livePrice: ticker?.lastPrice ?? null,
     fallbackPct: ticker?.priceChangePercent ?? null,
-    targetGainPct: row.targetGainPct
+    targetGainPct: row.targetGainPct,
+    startedAt: row.startedAt
   });
 
   return { state, ticker, connected };

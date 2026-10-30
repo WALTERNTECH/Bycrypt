@@ -1,4 +1,4 @@
-import { fetchTickers } from "@/lib/binance";
+import { fetchTickers } from "@/lib/market";
 import { pickSignal } from "@/lib/signal";
 
 /**

@@ -1,4 +1,4 @@
-import { SCAN_WINDOW, fetchCandles, type Candle, type ChartInterval } from "./binance";
+import { SCAN_WINDOW, fetchCandles, type Candle, type ChartInterval } from "./market";
 
 /**
  * The market scan behind the BUY / SELL signal.

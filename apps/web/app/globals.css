@@ -174,3 +174,99 @@ body:has([data-confirm-open]) [data-install-prompt] {
     margin: 14mm;
   }
 }
+
+/* ------------------------------------------------------------------ */
+/* Home carousel                                                       */
+/*                                                                     */
+/* The motion is small on purpose. A promo panel that animates hard    */
+/* reads as an advert; a slow drift reads as a surface that is alive.  */
+/* All of it stands down under prefers-reduced-motion.                 */
+/* ------------------------------------------------------------------ */
+
+@keyframes promo-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes promo-float-slow {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2.5px);
+  }
+}
+
+@keyframes promo-scanline {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(42px);
+    opacity: 0;
+  }
+}
+
+@keyframes promo-grow {
+  from {
+    transform: scaleY(0.55);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes promo-art-in {
+  from {
+    opacity: 0;
+    transform: translateX(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.promo-float {
+  animation: promo-float 3.2s ease-in-out infinite;
+}
+
+.promo-float-slow {
+  animation: promo-float-slow 4.6s ease-in-out infinite;
+}
+
+.promo-scanline {
+  animation: promo-scanline 2.6s ease-in-out infinite;
+}
+
+.promo-grow {
+  transform-origin: bottom;
+  animation: promo-grow 2.4s ease-in-out infinite alternate;
+}
+
+.promo-art-in {
+  animation: promo-art-in 0.45s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .promo-float,
+  .promo-float-slow,
+  .promo-scanline,
+  .promo-grow,
+  .promo-art-in {
+    animation: none;
+  }
+}

@@ -16,6 +16,42 @@ import {
  * route call this, so the number a user watches is the number that moves.
  */
 
+/**
+ * Simulated market mode.
+ *
+ * Off unless NEXT_PUBLIC_KRYPTON_SIM_MARKET is exactly "1". It exists to
+ * answer one question that a real market will not answer on demand: does
+ * a winning position actually credit the wallet. Waiting for a favourable
+ * market to find out is not a test, and editing the figures by hand only
+ * proves the figures can be edited.
+ *
+ * With it on, an open position drifts steadily in its own favour, so the
+ * whole path — watch it climb, hit the target, auto-close, see the wallet
+ * and total assets move — runs in a couple of minutes. The drift is
+ * deterministic and derived from how long the position has been open, so
+ * the browser and the server compute the same number and settlement pays
+ * exactly what the screen showed.
+ *
+ * It is an environment variable rather than a flag in the code on
+ * purpose: there is nothing to find and strip out later, and a
+ * deployment that does not set it cannot be in this mode. Every screen
+ * carries a banner while it is on, so a simulated figure can never be
+ * mistaken for a real one.
+ */
+export const SIM_MARKET = process.env.NEXT_PUBLIC_KRYPTON_SIM_MARKET === "1";
+
+/** Coin move, in percent, favouring whichever side the position took. */
+export function simulatedMovePct(startedAt: string, side: Side): number {
+  const openedMs = new Date(startedAt).getTime();
+  if (!Number.isFinite(openedMs)) return 0;
+  const minutes = Math.max(0, (Date.now() - openedMs) / 60_000);
+  // A quarter of a percent of coin movement per minute is five percent of
+  // position movement at this leverage: a +10% target lands in about two
+  // minutes, +100% in twenty. Capped so the figures stay plausible.
+  const magnitude = Math.min(minutes * 0.25, 12);
+  return side === "SELL" ? -magnitude : magnitude;
+}
+
 export interface PositionInput {
   principal: number;
   /** Admin-granted return. A floor on settlement, but only when set. */
@@ -26,6 +62,8 @@ export interface PositionInput {
   /** Used only when the entry price is unknown: the coin's 24h change. */
   fallbackPct?: number | null;
   targetGainPct?: number | null;
+  /** When the position opened. Required for simulated mode. */
+  startedAt?: string | null;
 }
 
 export interface PositionState {
@@ -40,7 +78,7 @@ export interface PositionState {
   /** What closing would actually credit — value, floored by any granted return. */
   settles: number;
   /** Where the move was measured from, so the UI can say so. */
-  basis: "entry" | "24h" | "none";
+  basis: "entry" | "24h" | "none" | "simulated";
   /** True once a target gain has been set and reached. */
   targetReached: boolean;
 }
@@ -50,10 +88,24 @@ export function positionState(input: PositionInput): PositionState {
   const principal = input.principal;
   const accrued = Number.isFinite(input.accrued) ? input.accrued : 0;
 
-  const fromEntry = moveFromEntry(input.entryPrice, input.livePrice);
-  const basis: PositionState["basis"] =
-    fromEntry !== null ? "entry" : Number.isFinite(input.fallbackPct ?? NaN) ? "24h" : "none";
-  const rawPct = fromEntry !== null ? fromEntry : basis === "24h" ? (input.fallbackPct as number) : 0;
+  const simulating = SIM_MARKET && !!input.startedAt;
+  const fromEntry = simulating ? null : moveFromEntry(input.entryPrice, input.livePrice);
+
+  const basis: PositionState["basis"] = simulating
+    ? "simulated"
+    : fromEntry !== null
+      ? "entry"
+      : Number.isFinite(input.fallbackPct ?? NaN)
+        ? "24h"
+        : "none";
+
+  const rawPct = simulating
+    ? simulatedMovePct(input.startedAt as string, side)
+    : fromEntry !== null
+      ? fromEntry
+      : basis === "24h"
+        ? (input.fallbackPct as number)
+        : 0;
 
   const value = positionValue(principal, rawPct, side);
   const pnl = positionPnl(principal, rawPct, side);
@@ -68,7 +120,8 @@ export function positionState(input: PositionInput): PositionState {
   // now, which would put money already committed at a risk its owner
   // never agreed to — so a legacy position keeps the floor it was opened
   // under. New positions always carry a target, so this cannot catch one.
-  const legacy = input.entryPrice === null && (input.targetGainPct ?? null) === null;
+  const legacy =
+    !simulating && input.entryPrice === null && (input.targetGainPct ?? null) === null;
   const floor = legacy ? principal + Math.max(accrued, 0) : accrued > 0 ? principal + accrued : null;
   const settles = floor === null ? value : Math.max(value, floor);
 
@@ -82,7 +135,7 @@ export function positionState(input: PositionInput): PositionState {
   const targetReached = target !== null && target > 0 && pnlPct >= target - TARGET_EPSILON;
 
   return {
-    movePct: fromEntry !== null || basis === "24h" ? rawPct : null,
+    movePct: basis === "none" ? null : rawPct,
     pnlPct,
     pnl,
     value,

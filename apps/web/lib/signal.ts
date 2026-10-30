@@ -1,4 +1,4 @@
-import type { Ticker } from "@/lib/binance";
+import type { Ticker } from "@/lib/market";
 
 /**
  * The automated trading signal.

@@ -9,7 +9,7 @@ import { usePositionState } from "@/hooks/usePositionState";
 import { inputClass } from "@/components/FormField";
 import { Button, ButtonLink } from "@/components/ui";
 import { formatUsdt, formatPct } from "@/lib/format";
-import { CHART_INTERVALS, INTERVAL_LABEL, SCAN_WINDOW, type ChartInterval } from "@/lib/binance";
+import { CHART_INTERVALS, INTERVAL_LABEL, SCAN_WINDOW, type ChartInterval } from "@/lib/market";
 import { TARGET_GAIN_OPTIONS, type OpenPositionRow } from "@/lib/position";
 import { coinMoveForTarget } from "@/lib/leverage";
 import { scanMarket, type MarketScan } from "@/lib/scan";

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { StatusBadge } from "@/components/Badge";
 import { formatUsdt, formatDateTime, truncateMiddle } from "@/lib/format";
 import { WithdrawForm } from "./WithdrawForm";
+import { RiskNotice } from "@/components/RiskNotice";
 
 const STATUS_MESSAGE: Record<string, string> = {
   pending: "Being processed",
@@ -108,6 +109,7 @@ export default async function WithdrawPage() {
           )}
         </div>
       </div>
+      <RiskNotice />
     </div>
   );
 }
