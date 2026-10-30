@@ -27,7 +27,7 @@ export interface ReportPosition {
   symbol: string;
   side: string;
   timeframe: string | null;
-  staked: number;
+  invested: number;
   entryPrice: number | null;
   livePrice: number | null;
   pnl: number;
@@ -117,7 +117,7 @@ export async function buildReport(supabase: any, userId: string, email: string):
     try {
       tickers = await fetchTickers(symbols);
     } catch {
-      /* unpriced positions fall back to their stake below */
+      /* unpriced positions fall back to the amount invested below */
     }
   }
 
@@ -139,7 +139,7 @@ export async function buildReport(supabase: any, userId: string, email: string):
       symbol: row.symbol ?? "—",
       side: row.side,
       timeframe: row.timeframe,
-      staked: row.principal,
+      invested: row.principal,
       entryPrice: row.entryPrice,
       livePrice: t?.lastPrice ?? null,
       pnl: state.pnl,
@@ -154,18 +154,18 @@ export async function buildReport(supabase: any, userId: string, email: string):
   const closedPositions: ReportPosition[] = allInvestments
     .filter((i: any) => i.status === "withdrawn")
     .map((i: any) => {
-      const staked = num(i.amount);
+      const invested = num(i.amount);
       const pnl = num(i.accrued_return);
       return {
         symbol: (i.traded_symbol as string) ?? "—",
         side: String(i.side ?? "BUY"),
         timeframe: (i.timeframe as string) ?? null,
-        staked,
+        invested,
         entryPrice: i.entry_price === null ? null : num(i.entry_price),
         livePrice: i.exit_price === null ? null : num(i.exit_price),
         pnl,
-        pnlPct: staked > 0 ? (pnl / staked) * 100 : 0,
-        value: staked + pnl,
+        pnlPct: invested > 0 ? (pnl / invested) * 100 : 0,
+        value: invested + pnl,
         open: false,
         openedAt: String(i.start_date ?? i.created_at),
         closedAt: i.closed_at ? String(i.closed_at) : null

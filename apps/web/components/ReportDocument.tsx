@@ -478,7 +478,7 @@ function BalanceChart({ r }: { r: ReportData }) {
 function PositionTable({ rows, open }: { rows: ReportPosition[]; open?: boolean }) {
   const COLS = [
     { label: "Market", width: "152px" },
-    { label: "Staked", width: "108px" },
+    { label: "Invested", width: "108px" },
     { label: "Entry", width: "108px" },
     { label: open ? "Now" : "Exit", width: "108px" },
     { label: "Value", width: "108px" }
@@ -526,7 +526,7 @@ function PositionTable({ rows, open }: { rows: ReportPosition[]; open?: boolean 
               </Txt>
             </div>
             <Txt size={14} style={{ width: "108px" }}>
-              {money(p.staked)}
+              {money(p.invested)}
             </Txt>
             <Txt size={14} color={MUTED} style={{ width: "108px" }}>
               {price(p.entryPrice)}

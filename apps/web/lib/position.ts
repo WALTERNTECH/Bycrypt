@@ -109,7 +109,7 @@ export interface PositionInput {
 export interface PositionState {
   /** The coin's move, in the direction the position is pointing. */
   movePct: number | null;
-  /** The position's own percentage change against the stake. */
+  /** The position's own percentage change against the amount invested. */
   pnlPct: number;
   /** Gain or loss in dollars. Signed. */
   pnl: number;
@@ -165,7 +165,7 @@ export function positionState(input: PositionInput): PositionState {
   //
   // Positions opened before this change carry neither an entry price nor
   // a close-at target, and they were opened under rules where profit was
-  // floored at zero and the stake could not be lost. Settlement is signed
+  // floored at zero and the amount invested could not be lost. Settlement
   // now, which would put money already committed at a risk its owner
   // never agreed to — so a legacy position keeps the floor it was opened
   // under. New positions always carry a target, so this cannot catch one.
@@ -244,7 +244,7 @@ export const POSITION_COLUMNS =
 /**
  * The gains a position can be set to close itself at.
  *
- * These are RETURN targets, not stake fractions — the row of chips under
+ * These are RETURN targets, not fractions of a wallet — the chips under
  * the amount field used to be read as "how much of my wallet", which is a
  * different question entirely and is now asked separately and labelled.
  */

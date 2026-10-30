@@ -81,7 +81,7 @@ export default async function InvestmentsPage() {
               </div>
 
               <div className="mt-2.5 grid grid-cols-3 gap-2">
-                <Cell label="Staked" value={formatUsdt(row.principal, { withSymbol: true })} />
+                <Cell label="Invested" value={formatUsdt(row.principal, { withSymbol: true })} />
 
                 <div className="rounded-lg bg-surface-2 px-3 py-2.5">
                   <p className="text-[10px] font-medium text-text-tertiary">

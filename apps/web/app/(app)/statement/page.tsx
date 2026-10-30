@@ -61,7 +61,7 @@ export default async function StatementPage() {
   const realisedToday = closed.filter((i) => inDay(i.start_date)).reduce((t, i) => t + num(i.accrued_return), 0);
   const depositedMonth = (deposits ?? []).reduce((t, d) => t + num(d.amount), 0);
   const depositedToday = (deposits ?? []).filter((d) => inDay(d.confirmed_at)).reduce((t, d) => t + num(d.amount), 0);
-  const stakedOpen = open.reduce((t, i) => t + num(i.amount), 0);
+  const investedOpen = open.reduce((t, i) => t + num(i.amount), 0);
 
   const rows = [
     ...(deposits ?? []).map((d) => ({
@@ -76,7 +76,7 @@ export default async function StatementPage() {
     ...closed.map((i) => ({
       when: i.start_date as string,
       kind: "Position closed",
-      detail: `${(i.traded_symbol ?? "").replace("USDT", "")} · stake ${formatUsdt(num(i.amount), { withSymbol: true })}`,
+      detail: `${(i.traded_symbol ?? "").replace("USDT", "")} · invested ${formatUsdt(num(i.amount), { withSymbol: true })}`,
       value: num(i.accrued_return)
     })),
     ...open.map((i) => ({
@@ -131,7 +131,7 @@ export default async function StatementPage() {
 
         <div className="grid grid-cols-2 border-b border-border">
           <Stat label="Wallet balance" value={formatUsdt(num(profile?.wallet_balance), { withSymbol: true })} strong />
-          <Stat label="Currently staked" value={formatUsdt(stakedOpen, { withSymbol: true })} strong />
+          <Stat label="Currently invested" value={formatUsdt(investedOpen, { withSymbol: true })} strong />
         </div>
 
         <div className="px-5 py-4">

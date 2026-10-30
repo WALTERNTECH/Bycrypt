@@ -13,7 +13,7 @@
 //   regardless of the signal shown to the user;
 //   entry_price was never recorded, so P&L fell back to the coin's 24h
 //   move and a new position opened at an instant loss in a red market;
-//   settlement could not value the position, so it credited the stake
+//   settlement could not value the position, so it credited back the
 //   exactly — closing a position moved the wallet by nothing at all;
 //   and the BTC rate was unavailable, so starting a deposit 503'd.
 //

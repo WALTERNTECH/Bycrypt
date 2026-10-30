@@ -246,7 +246,7 @@ export function PositionChart({ row, displayName }: { row: OpenPositionRow; disp
       <div ref={containerRef} className="mt-2 w-full" />
 
       <div className="grid grid-cols-3 gap-2">
-        <Cell label="Staked" value={formatUsdt(row.principal, { withSymbol: true })} />
+        <Cell label="Invested" value={formatUsdt(row.principal, { withSymbol: true })} />
         <Cell
           label={up ? "Gain" : "Loss"}
           value={formatUsdt(Math.abs(state.pnl), { withSymbol: true })}

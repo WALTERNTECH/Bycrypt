@@ -79,7 +79,7 @@ export async function settlePosition(
 ): Promise<SettleOutcome> {
   const { state, livePrice } = await valuePosition(row, simulated);
 
-  // An unreachable exchange settles on the stake plus any granted return
+  // An unreachable exchange settles on the amount invested plus any grant
   // rather than blocking the user out of their own position — that is
   // what passing a null market value tells the database to do.
   const marketValue = state.basis === "none" ? null : Number(state.value.toFixed(6));

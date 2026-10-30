@@ -44,7 +44,7 @@ export async function GET() {
       took_ms: Date.now() - started,
       note: ok
         ? "Prices and candles resolve. Orders, settlement and deposits can all be valued."
-        : "No venue is answering. Orders open without an entry price, settlement credits the stake exactly, and deposits cannot be priced."
+        : "No venue is answering. Orders open without an entry price, settlement credits back exactly what was invested, and deposits cannot be priced."
     },
     { status: ok ? 200 : 503 }
   );

@@ -61,7 +61,7 @@ export function LiveBalanceCard({
     });
   }
 
-  const staked = positions.reduce((sum, p) => sum + p.principal, 0);
+  const invested = positions.reduce((sum, p) => sum + p.principal, 0);
 
   // Each position valued through the same formula the server settles
   // with, so this is never a different number from what lands in the
@@ -87,7 +87,7 @@ export function LiveBalanceCard({
   );
 
   const totalAssets = walletBalance + totals.settles;
-  const pnlPct = staked > 0 ? (totals.pnl / staked) * 100 : 0;
+  const pnlPct = invested > 0 ? (totals.pnl / invested) * 100 : 0;
   const up = totals.pnl >= 0;
   const hasPosition = positions.length > 0;
 

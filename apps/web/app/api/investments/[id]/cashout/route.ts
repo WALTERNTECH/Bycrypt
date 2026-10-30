@@ -9,9 +9,9 @@ import { settlePosition } from "@/lib/settle";
  * The value is recomputed server-side in settlePosition() from live
  * exchange data — measured from the price the position was opened at, in
  * the direction the position was opened on. A winning position credits
- * more than the stake; a losing one credits less. That is the bug this
+ * more than was invested; a losing one credits less. That is the bug this
  * route carried: profit was floored at zero, so closing a losing position
- * returned the stake intact and the wallet never moved.
+ * returned the invested amount intact and the wallet never moved.
  *
  * The row is read through the caller's own client, not the service role.
  * RLS on investments already restricts SELECT to the owner, so this both

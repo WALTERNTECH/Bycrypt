@@ -13,10 +13,10 @@
  *   decorative.
  *
  *   P&L can be NEGATIVE. Profit used to be floored at zero, so a losing
- *   position returned the stake intact and closing it changed the wallet
+ *   position returned the invested amount intact and closing it changed
  *   by nothing at all. The position's *value* is still floored at zero —
  *   a position can lose all of itself but must never reach into the rest
- *   of the wallet — but the P&L against the stake is now signed.
+ *   of the wallet — but the P&L against it is now signed.
  *
  * These are used for both display AND settlement. The cash-out route
  * recomputes value server-side from exchange data at close time, so what
@@ -88,7 +88,7 @@ export function positionValue(
   return Math.max(0, principal * (1 + (directionalPct(rawPct, side) * leverage) / 100));
 }
 
-/** Gain or loss against the stake. Negative when the position is down. */
+/** Gain or loss against the amount invested. Negative when down. */
 export function positionPnl(
   principal: number,
   rawPct: number,

@@ -188,7 +188,7 @@ export function TradeChartClient({
           <Row label="Market" value={fill.symbol.replace("USDT", "/USDT")} />
           <Row label="Signal" value={fill.side} valueClass={isBuy ? "text-positive" : "text-negative"} />
           <Row label="Timeframe" value={fill.timeframe} />
-          <Row label="Staked" value={formatUsdt(fill.amount, { withSymbol: true })} />
+          <Row label="Invested" value={formatUsdt(fill.amount, { withSymbol: true })} />
           <Row label="Closes at" value={`+${fill.target}%`} />
           {fill.entry !== null && (
             <Row
@@ -330,8 +330,8 @@ export function TradeChartClient({
           <div>
             <StepLabel n={3}>What return closes it automatically?</StepLabel>
             <p className="mt-1 text-[11px] text-text-tertiary">
-              The position settles itself the moment it reaches this gain. These are returns on your
-              stake — not how much of your wallet to use.
+              The position settles itself the moment it reaches this gain. These are returns on the
+              amount you invest — not how much of your wallet to use.
             </p>
             <div className="mt-2.5 grid grid-cols-4 gap-2">
               {TARGET_GAIN_OPTIONS.map((pct) => {
@@ -364,7 +364,7 @@ export function TradeChartClient({
             <StepLabel n={4}>Krypton&apos;s read on this market</StepLabel>
             {!readyToScan ? (
               <p className="mt-2 rounded-lg bg-surface-2 px-3.5 py-4 text-[12px] text-text-tertiary">
-                Set a stake and a target return, and Krypton scans{" "}
+                Set an amount and a target return, and Krypton scans{" "}
                 {SCAN_WINDOW[timeframe].label} of {coin} to tell you which way to hold.
               </p>
             ) : scanning && !scan ? (
@@ -512,7 +512,7 @@ function SamePositionOpen({
             {position.side === "SELL" ? "Sell" : "Buy"} position open
           </p>
           <p className="mt-1 text-[11px] text-text-secondary">
-            Staked{" "}
+            Invested{" "}
             <span className="mono-num font-semibold text-text-primary">
               {formatUsdt(position.principal, { withSymbol: true })}
             </span>

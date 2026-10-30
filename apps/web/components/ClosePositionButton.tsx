@@ -65,7 +65,7 @@ export function ClosePositionButton({
           <span className="mono-num font-bold text-text-primary">
             {formatUsdt(row.principal, { withSymbol: true })}
           </span>{" "}
-          staked{" "}
+          invested{" "}
           {profit >= 0 ? (
             <>
               plus{" "}
