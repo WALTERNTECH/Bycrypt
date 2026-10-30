@@ -10,7 +10,8 @@ export function AuthCard({
   title: string;
   subtitle: string;
   children: React.ReactNode;
-  footer: React.ReactNode;
+  /** Optional: the reset screens have nowhere sensible to send someone. */
+  footer?: React.ReactNode;
 }) {
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-base px-4 py-12">
@@ -28,7 +29,7 @@ export function AuthCard({
           <p className="mt-1 text-sm text-text-secondary">{subtitle}</p>
           <div className="mt-6">{children}</div>
         </div>
-        <p className="mt-6 text-center text-sm text-text-secondary">{footer}</p>
+        {footer && <p className="mt-6 text-center text-sm text-text-secondary">{footer}</p>}
       </div>
     </div>
   );

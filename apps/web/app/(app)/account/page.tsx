@@ -31,7 +31,11 @@ export default async function AccountPage() {
       </Link>
 
       <div className="mt-4">
-        <AccountForms initialFullName={profile?.full_name ?? ""} initialPhone={profile?.phone ?? ""} />
+        <AccountForms
+          initialFullName={profile?.full_name ?? ""}
+          initialPhone={profile?.phone ?? ""}
+          initialEmail={user!.email ?? ""}
+        />
       </div>
     </div>
   );

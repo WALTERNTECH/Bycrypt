@@ -23,14 +23,19 @@ export async function POST(_req: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { data: open } = await supabase
-    .from("investments")
-    .select(POSITION_COLUMNS)
-    .eq("user_id", user.id)
-    .neq("status", "withdrawn")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const [{ data: open }, { data: profile }] = await Promise.all([
+    supabase
+      .from("investments")
+      .select(POSITION_COLUMNS)
+      .eq("user_id", user.id)
+      .neq("status", "withdrawn")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("profiles").select("is_simulated").eq("id", user.id).maybeSingle()
+  ]);
+
+  const simulated = profile?.is_simulated === true;
 
   if (!open) return NextResponse.json({ closed: false, reason: "no_open_position" });
 
@@ -39,7 +44,7 @@ export async function POST(_req: NextRequest) {
     return NextResponse.json({ closed: false, reason: "no_target_set" });
   }
 
-  const { state } = await valuePosition(row);
+  const { state } = await valuePosition(row, simulated);
   if (!state.targetReached) {
     return NextResponse.json({
       closed: false,
@@ -49,7 +54,7 @@ export async function POST(_req: NextRequest) {
     });
   }
 
-  const outcome = await settlePosition(supabase, row);
+  const outcome = await settlePosition(supabase, row, simulated);
   if (!outcome.ok) return NextResponse.json({ closed: false, error: outcome.error }, { status: 400 });
 
   return NextResponse.json({

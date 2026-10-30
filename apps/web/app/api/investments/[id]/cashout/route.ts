@@ -26,18 +26,17 @@ export async function POST(_req: NextRequest, { params }: { params: { id: string
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
 
-  const { data: row } = await supabase
-    .from("investments")
-    .select(POSITION_COLUMNS)
-    .eq("id", params.id)
-    .maybeSingle();
+  const [{ data: row }, { data: profile }] = await Promise.all([
+    supabase.from("investments").select(POSITION_COLUMNS).eq("id", params.id).maybeSingle(),
+    supabase.from("profiles").select("is_simulated").eq("id", user.id).maybeSingle()
+  ]);
 
   if (!row) return NextResponse.json({ error: "Position not found." }, { status: 404 });
   if ((row as any).status === "withdrawn") {
     return NextResponse.json({ error: "This position has already been closed." }, { status: 400 });
   }
 
-  const outcome = await settlePosition(supabase, mapPositionRow(row));
+  const outcome = await settlePosition(supabase, mapPositionRow(row), profile?.is_simulated === true);
   if (!outcome.ok) return NextResponse.json({ error: outcome.error }, { status: 400 });
 
   return NextResponse.json({

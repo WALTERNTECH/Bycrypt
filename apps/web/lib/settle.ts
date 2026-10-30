@@ -29,7 +29,7 @@ const REASON_MESSAGES: Record<string, string> = {
 
 /** Prices a position from live market data. Returns null market value
  *  when no price basis could be established at all. */
-export async function valuePosition(row: OpenPositionRow) {
+export async function valuePosition(row: OpenPositionRow, simulated = false) {
   let livePrice: number | null = null;
   let fallbackPct: number | null = null;
 
@@ -56,7 +56,8 @@ export async function valuePosition(row: OpenPositionRow) {
     livePrice,
     fallbackPct,
     targetGainPct: row.targetGainPct,
-    startedAt: row.startedAt
+    startedAt: row.startedAt,
+    simulated
   });
 
   return { state, livePrice };
@@ -70,8 +71,12 @@ export async function valuePosition(row: OpenPositionRow) {
  * checks auth.uid() against the row's owner, so ownership is enforced
  * twice without the admin key being anywhere near this path.
  */
-export async function settlePosition(supabase: any, row: OpenPositionRow): Promise<SettleOutcome> {
-  const { state, livePrice } = await valuePosition(row);
+export async function settlePosition(
+  supabase: any,
+  row: OpenPositionRow,
+  simulated = false
+): Promise<SettleOutcome> {
+  const { state, livePrice } = await valuePosition(row, simulated);
 
   // An unreachable exchange settles on the stake plus any granted return
   // rather than blocking the user out of their own position — that is

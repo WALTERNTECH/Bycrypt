@@ -320,3 +320,68 @@ export async function sendTestEmail(): Promise<SendResult> {
     return { ok: false, error: err instanceof Error ? err.message : String(err) };
   }
 }
+
+/* ------------------------------------------------------- user-facing mail */
+
+/**
+ * Mail addressed to a customer rather than to support.
+ *
+ * It shares the transport, the credentials and the timeouts with the
+ * admin alerts above, because the operator configures one mailbox, not
+ * two. What it does not share is the tone or the failure contract: an
+ * alert is a courtesy that may be dropped, whereas a password reset is
+ * the entire mechanism — the caller is told whether it went, and says so.
+ */
+export async function sendUserEmail(
+  to: string,
+  subject: string,
+  headline: string,
+  body: string,
+  cta?: { label: string; href: string }
+): Promise<SendResult> {
+  try {
+    const { values } = await loadSettings();
+    const provider = resolveProvider(values);
+    if (!provider) {
+      return { ok: false, error: "No mail provider is configured (SMTP or Resend)." };
+    }
+
+    const button = cta
+      ? `<tr><td style="padding:26px 0 6px">
+           <a href="${escapeHtml(cta.href)}"
+              style="background:#F7A600;color:#121214;text-decoration:none;font-weight:700;
+                     font-size:15px;padding:13px 26px;border-radius:8px;display:inline-block">
+             ${escapeHtml(cta.label)}
+           </a>
+         </td></tr>`
+      : "";
+
+    const html = `<!doctype html><html><body style="margin:0;background:#F7F7F8;
+      font-family:-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+             style="background:#F7F7F8;padding:32px 16px">
+        <tr><td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"
+                 style="max-width:520px;background:#FFFFFF;border-radius:12px;padding:32px">
+            <tr><td style="font-size:18px;font-weight:800;color:#121214;padding-bottom:4px">Krypton</td></tr>
+            <tr><td style="font-size:20px;font-weight:700;color:#121214;padding:14px 0 0">
+              ${escapeHtml(headline)}
+            </td></tr>
+            <tr><td style="font-size:14px;line-height:1.65;color:#4A4E57;padding:12px 0 0">
+              ${body}
+            </td></tr>
+            ${button}
+            <tr><td style="font-size:12px;line-height:1.6;color:#6B7079;padding:26px 0 0;
+                           border-top:1px solid #EAECEF;margin-top:20px">
+              If you weren't expecting this email you can ignore it — nothing on your account
+              has changed.
+            </td></tr>
+          </table>
+        </td></tr>
+      </table></body></html>`;
+
+    return await deliver(to, defaultFrom(provider, values), subject, html, provider, values);
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Unknown mail error" };
+  }
+}

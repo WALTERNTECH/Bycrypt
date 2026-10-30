@@ -18,7 +18,15 @@ function Notice({ text, tone }: { text: string; tone: "positive" | "negative" })
   return <p className={`mt-2 text-xs ${tone === "positive" ? "text-positive" : "text-negative"}`}>{text}</p>;
 }
 
-export function AccountForms({ initialFullName, initialPhone }: { initialFullName: string; initialPhone: string }) {
+export function AccountForms({
+  initialFullName,
+  initialPhone,
+  initialEmail
+}: {
+  initialFullName: string;
+  initialPhone: string;
+  initialEmail: string;
+}) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -27,6 +35,12 @@ export function AccountForms({ initialFullName, initialPhone }: { initialFullNam
   const [phone, setPhone] = useState(initialPhone);
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileMsg, setProfileMsg] = useState<{ text: string; tone: "positive" | "negative" } | null>(null);
+
+  // Email
+  const [email, setEmail] = useState(initialEmail);
+  const [emailPassword, setEmailPassword] = useState("");
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailMsg, setEmailMsg] = useState<{ text: string; tone: "positive" | "negative" } | null>(null);
 
   // Password
   const [currentPassword, setCurrentPassword] = useState("");
@@ -49,6 +63,41 @@ export function AccountForms({ initialFullName, initialPhone }: { initialFullNam
     setProfileLoading(false);
     setProfileMsg(error ? { text: "Could not save changes.", tone: "negative" } : { text: "Saved.", tone: "positive" });
     router.refresh();
+  }
+
+  async function handleEmailSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setEmailMsg(null);
+
+    if (email.trim().toLowerCase() === initialEmail.toLowerCase()) {
+      setEmailMsg({ text: "That is already the email on this account.", tone: "negative" });
+      return;
+    }
+
+    setEmailLoading(true);
+    try {
+      const res = await fetch("/api/account/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ new_email: email.trim(), current_password: emailPassword })
+      });
+      const raw = await res.text();
+      const data = raw ? JSON.parse(raw) : null;
+      if (!res.ok) {
+        setEmailMsg({ text: data?.error ?? "Could not change the email.", tone: "negative" });
+        return;
+      }
+      setEmailPassword("");
+      setEmailMsg({
+        text: "Email changed. Use the new address next time you log in.",
+        tone: "positive"
+      });
+      router.refresh();
+    } catch {
+      setEmailMsg({ text: "Could not reach the server. Try again shortly.", tone: "negative" });
+    } finally {
+      setEmailLoading(false);
+    }
   }
 
   async function handlePasswordSubmit(e: React.FormEvent) {
@@ -99,6 +148,41 @@ export function AccountForms({ initialFullName, initialPhone }: { initialFullNam
           {profileMsg && <Notice text={profileMsg.text} tone={profileMsg.tone} />}
           <button type="submit" disabled={profileLoading} className={buttonClass}>
             {profileLoading ? "Saving…" : "Save profile"}
+          </button>
+        </form>
+      </SectionCard>
+
+      <SectionCard title="Change email">
+        <p className="mb-3 text-xs leading-relaxed text-text-secondary">
+          This is where password resets are sent, so your password is required to change it. The
+          old address is notified when it changes.
+        </p>
+        <form onSubmit={handleEmailSubmit} className="space-y-3">
+          <FormField label="New email">
+            <input
+              required
+              type="email"
+              autoComplete="email"
+              className={inputClass}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="you@example.com"
+            />
+          </FormField>
+          <FormField label="Current password">
+            <input
+              required
+              type="password"
+              autoComplete="current-password"
+              className={inputClass}
+              value={emailPassword}
+              onChange={(e) => setEmailPassword(e.target.value)}
+              placeholder="••••••••"
+            />
+          </FormField>
+          {emailMsg && <Notice text={emailMsg.text} tone={emailMsg.tone} />}
+          <button type="submit" disabled={emailLoading} className={buttonClass}>
+            {emailLoading ? "Changing…" : "Change email"}
           </button>
         </form>
       </SectionCard>

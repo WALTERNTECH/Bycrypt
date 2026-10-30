@@ -23,32 +23,77 @@ repository or in the zip.
 | `RESEND_API_KEY` | web, admin | Optional; alert emails are skipped without it |
 | `NEXT_PUBLIC_KRYPTON_SIM_MARKET` | web | Optional. See below |
 
-## Simulated market mode
+## Simulated positions (test accounts)
 
-`NEXT_PUBLIC_KRYPTON_SIM_MARKET=1` makes an open position drift steadily in
-its own favour, so the full path — open, watch it climb, hit the target,
-auto-close, see the wallet and total assets move — runs in a couple of
-minutes instead of waiting on a market that may never oblige.
+Set `profiles.is_simulated = true` on an account and its open positions
+drift steadily in their own favour, so the full path — open, watch it climb,
+hit the target, auto-close, see the wallet and total assets move — runs in a
+couple of minutes rather than waiting on a market that may never oblige.
 
-It exists to answer one question a real market will not answer on demand:
-*does a winning position actually credit the wallet.*
+It answers one question a real market will not answer on demand: *does a
+winning position actually credit the wallet.*
 
-- The drift is deterministic and derived from how long the position has been
-  open, so the browser and the server compute the same figure and settlement
-  pays exactly what the screen showed.
-- Every screen carries a black banner saying the figures are simulated while
-  it is on.
-- It is an environment variable rather than a flag in the code so there is
-  nothing to find and strip out later. **A deployment that does not set it
-  cannot be in this mode.**
-
-**Before production: delete the variable and redeploy.** Confirm by checking
-that the banner is gone.
-
-```bash
-vercel env rm NEXT_PUBLIC_KRYPTON_SIM_MARKET production
-vercel --prod
+```sql
+-- turn it on for one account
+update public.profiles set is_simulated = true  where id = '<user id>';
+-- turn it off
+update public.profiles set is_simulated = false where id = '<user id>';
+-- who currently has it
+select p.id, p.full_name, u.email from public.profiles p
+  join auth.users u on u.id = p.id where p.is_simulated;
 ```
+
+Why a column and not an environment variable, which is what this was first
+built as: as a variable it was the whole deployment or nothing. It put a
+banner across every screen, and it left the platform one forgotten variable
+away from showing simulated figures to real depositors. As a property of an
+account it cannot reach anyone who does not carry the flag, and deleting the
+test account removes it.
+
+What a flagged account gets:
+
+- A small **Demo** chip beside the avatar. It renders from the same flag, so
+  it cannot appear for a real user.
+- Withdrawals refused in `request_withdrawal()` with `simulated_account`.
+  The balance on such an account is not real money and must not be able to
+  leave as though it were — refused at the database rather than relying on
+  an operator noticing it in the payout queue.
+
+The drift is deterministic and derived from how long the position has been
+open, so the browser and the server compute the same figure and settlement
+pays exactly what the screen showed.
+
+## Email change and password recovery
+
+Both depend on a mail provider, because this Supabase project has no SMTP —
+the same reason signup is handled server-side. Credentials come from
+`secure_config` (RLS on, no policies, service-role only) or from env.
+
+**Password recovery.** `/forgot-password` asks Supabase for a recovery link
+with `generateLink`, so the token is Supabase's own single-use expiring one;
+only delivery is ours. The reply is identical whether or not the address has
+an account — otherwise the endpoint becomes a way to find out who banks here.
+`/reset-password` accepts both token shapes (fragment tokens and a `?code=`)
+and strips the credential out of the address bar once read.
+
+**Email change.** `/account` → Change email. The current password is
+required: the email address is where password resets go, so whoever controls
+it controls the account, and a merely-open session must not be able to take
+it. The password is checked on a throwaway client that persists nothing, so
+the check cannot disturb the caller's session. The old address is emailed
+that it happened, which is what makes an unauthorised change visible to the
+person it was taken from.
+
+Two things must be set up for these to work end to end:
+
+1. **A verified sending domain in Resend**, with `admin_notification_from`
+   set to an address on it. The fallback sender is `onboarding@resend.dev`,
+   which Resend only delivers to the account owner's own address — so resets
+   to real users silently fail until a domain is verified. The admin
+   console's email diagnostics will send a test.
+2. **`<site>/reset-password` added to Supabase's Redirect URLs**
+   (Authentication → URL Configuration). Without it Supabase ignores the
+   `redirectTo` and sends people to the Site URL instead.
 
 ## Market data
 

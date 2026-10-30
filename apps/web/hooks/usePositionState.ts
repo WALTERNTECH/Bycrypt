@@ -1,6 +1,7 @@
 "use client";
 
 import { useLiveTickers } from "./useLiveTickers";
+import { useSimulatedAccount } from "@/components/SimulationProvider";
 import { positionState, type OpenPositionRow, type PositionState } from "@/lib/position";
 import type { Ticker } from "@/lib/market";
 
@@ -18,6 +19,7 @@ export function usePositionState(row: OpenPositionRow): {
 } {
   const { tickers, connected } = useLiveTickers(row.symbol ? [row.symbol] : []);
   const ticker = row.symbol ? tickers[row.symbol] : undefined;
+  const simulated = useSimulatedAccount();
 
   const state = positionState({
     principal: row.principal,
@@ -27,7 +29,8 @@ export function usePositionState(row: OpenPositionRow): {
     livePrice: ticker?.lastPrice ?? null,
     fallbackPct: ticker?.priceChangePercent ?? null,
     targetGainPct: row.targetGainPct,
-    startedAt: row.startedAt
+    startedAt: row.startedAt,
+    simulated
   });
 
   return { state, ticker, connected };

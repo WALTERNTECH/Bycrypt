@@ -17,28 +17,27 @@ import {
  */
 
 /**
- * Simulated market mode.
+ * Simulated P&L, for test accounts.
  *
- * Off unless NEXT_PUBLIC_KRYPTON_SIM_MARKET is exactly "1". It exists to
- * answer one question that a real market will not answer on demand: does
- * a winning position actually credit the wallet. Waiting for a favourable
- * market to find out is not a test, and editing the figures by hand only
- * proves the figures can be edited.
+ * It answers one question a real market will not answer on demand: does a
+ * winning position actually credit the wallet. Waiting for a favourable
+ * market is not a test, and editing the figures by hand only proves the
+ * figures can be edited.
  *
- * With it on, an open position drifts steadily in its own favour, so the
- * whole path — watch it climb, hit the target, auto-close, see the wallet
- * and total assets move — runs in a couple of minutes. The drift is
- * deterministic and derived from how long the position has been open, so
- * the browser and the server compute the same number and settlement pays
- * exactly what the screen showed.
+ * For an account carrying profiles.is_simulated, an open position drifts
+ * steadily in its own favour, so the whole path — watch it climb, hit the
+ * target, auto-close, see the wallet and total assets move — runs in a
+ * couple of minutes. The drift is deterministic and derived from how long
+ * the position has been open, so the browser and the server compute the
+ * same number and settlement pays exactly what the screen showed.
  *
- * It is an environment variable rather than a flag in the code on
- * purpose: there is nothing to find and strip out later, and a
- * deployment that does not set it cannot be in this mode. Every screen
- * carries a banner while it is on, so a simulated figure can never be
- * mistaken for a real one.
+ * This was a deployment-wide environment variable, which was the wrong
+ * shape for it: it was all accounts or none, it put a banner across every
+ * screen, and it left the whole platform one forgotten variable away from
+ * showing simulated figures to real depositors. As a property of an
+ * account it cannot reach anyone who does not carry the flag, and
+ * deleting the test account removes it entirely.
  */
-export const SIM_MARKET = process.env.NEXT_PUBLIC_KRYPTON_SIM_MARKET === "1";
 
 /** Coin move, in percent, favouring whichever side the position took. */
 export function simulatedMovePct(startedAt: string, side: Side): number {
@@ -62,8 +61,10 @@ export interface PositionInput {
   /** Used only when the entry price is unknown: the coin's 24h change. */
   fallbackPct?: number | null;
   targetGainPct?: number | null;
-  /** When the position opened. Required for simulated mode. */
+  /** When the position opened. Required for simulated accounts. */
   startedAt?: string | null;
+  /** profiles.is_simulated for the account that holds this position. */
+  simulated?: boolean;
 }
 
 export interface PositionState {
@@ -88,7 +89,7 @@ export function positionState(input: PositionInput): PositionState {
   const principal = input.principal;
   const accrued = Number.isFinite(input.accrued) ? input.accrued : 0;
 
-  const simulating = SIM_MARKET && !!input.startedAt;
+  const simulating = input.simulated === true && !!input.startedAt;
   const fromEntry = simulating ? null : moveFromEntry(input.entryPrice, input.livePrice);
 
   const basis: PositionState["basis"] = simulating

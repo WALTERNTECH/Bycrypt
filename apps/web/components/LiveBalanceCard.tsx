@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useLiveTickers } from "@/hooks/useLiveTickers";
 import { formatUsdt, formatPct } from "@/lib/format";
 import { positionState, type OpenPositionRow } from "@/lib/position";
+import { useSimulatedAccount } from "./SimulationProvider";
 
 const HIDDEN_KEY = "krypton-assets-hidden";
 
@@ -34,6 +35,7 @@ export function LiveBalanceCard({
     new Set(positions.map((p) => p.symbol).filter((s): s is string => !!s))
   );
   const { tickers } = useLiveTickers(symbols);
+  const simulated = useSimulatedAccount();
   const [hidden, setHidden] = useState(false);
 
   useEffect(() => {
@@ -72,7 +74,8 @@ export function LiveBalanceCard({
         livePrice: t?.lastPrice ?? null,
         fallbackPct: t?.priceChangePercent ?? null,
         targetGainPct: p.targetGainPct,
-        startedAt: p.startedAt
+        startedAt: p.startedAt,
+        simulated
       });
       return { settles: acc.settles + s.settles, value: acc.value + s.value, pnl: acc.pnl + s.pnl };
     },

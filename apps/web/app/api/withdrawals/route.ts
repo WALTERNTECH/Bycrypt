@@ -13,7 +13,11 @@ const bodySchema = z.object({
 const REASON_MESSAGES: Record<string, string> = {
   not_authenticated: "Please log in again.",
   invalid_amount: "Enter a valid amount.",
-  insufficient_balance: "That's more than your available wallet balance."
+  insufficient_balance: "That's more than your available wallet balance.",
+  // Refused in request_withdrawal() rather than here, so it holds however
+  // the request arrives.
+  simulated_account:
+    "This is a test account with simulated figures, so it cannot withdraw. The balance on it is not real money."
 };
 
 // Note: this only records a withdrawal request for admin review — the
